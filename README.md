@@ -1,4 +1,4 @@
-# CS3110FinalProject
+# Pac-Camel
 
 Team Members:\
 Vincent Jiang (vj68)\
