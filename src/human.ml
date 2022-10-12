@@ -1,0 +1,1 @@
+(* Contains logic for a human (the ghosts in Pac-Man) *)

@@ -1,2 +1,3 @@
-(executable
- (name main))
+(library
+ (name game)
+ (public_name Game))
