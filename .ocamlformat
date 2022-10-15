@@ -6,6 +6,5 @@ type-decl = sparse
 wrap-comments = true
 doc-comments = before
 margin = 80
-break-collection-expressions = wrap
 break-fun-decl = smart
 break-fun-sig = smart
