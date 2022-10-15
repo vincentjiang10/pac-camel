@@ -1,1 +1,0 @@
-(* Contains logic for a big coin *)
