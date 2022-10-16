@@ -1,5 +1,3 @@
-(* coin logic *)
-
 type t = {
   bSrc : string;
   sSrc : string;
