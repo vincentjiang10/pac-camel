@@ -4,6 +4,7 @@ open Pacmap
 type t = {
   x : float;
   y : float;
+  speed : float;
   src : string;
 }
 
@@ -16,4 +17,4 @@ let move t (map : Pacmap.t) (x, y) =
 
 let init map image =
   let pos = start_pos map in
-  { x = fst pos; y = snd pos; src = image }
+  { x = fst pos; y = snd pos; src = image; speed = 1. }

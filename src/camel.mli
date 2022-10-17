@@ -9,4 +9,7 @@ type t
 val get_x : t -> float
 val get_y : t -> float
 val move : t -> Pacmap.t -> float * float -> t
+
+(** [init t s] is a camel with source image at [s] and dimensions and position
+    depending on [t] *)
 val init : Pacmap.t -> string -> t
