@@ -12,6 +12,7 @@ let get_x t = t.x
 let get_y t = t.y
 
 (* not finished yet; map is used to check if a move is valid *)
+(* TODO @Vincent: make sure to implement wrap around *)
 let move t (map : Pacmap.t) (x, y) =
   if valid_move map (x, y) then t else { t with x; y }
 

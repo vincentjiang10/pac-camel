@@ -38,42 +38,80 @@ let gen_map (seed : int) =
     Array.map
       (Array.map (fun _ ->
            if float 1. > 0.5 then Wall
-           else Empty { bcoin = false; scoin = false }))
+           else Empty { bcoin = float 10. > 5.; scoin = float 20. > 10. }))
       data
   in
-  { data; (* dependent on s*)
-          start = (0., 0.); size = (s, s) }
+  { data; (* dependent on s*) start = (0., 0.); size = (s, s) }
 
-let draw_wall sdl_area (x, y) (w_scale, h_scale) =
-  let open Bogue in
-  Sdl_area.fill_rectangle sdl_area
-    ~color:
-      Draw.(
-        match grey with
-        | r, g, b -> (r, g, b, 255))
-    ~w:w_scale ~h:h_scale
-    (x * w_scale, y * w_scale)
+let color_of_rgb c a =
+  match c with
+  | r, g, b -> (r, g, b, a)
 
-let draw_empty sdl_area e (x, y) (w_scale, h_scale) =
-  let open Bogue in
-  Sdl_area.fill_rectangle sdl_area
-    ~color:
-      Draw.(
-        match cyan with
-        | r, g, b -> (r, g, b, 100))
-    ~w:w_scale ~h:h_scale
-    (x * w_scale, y * w_scale)
+let draw_circle sdl_area c r loc =
+  Bogue.Sdl_area.fill_circle sdl_area ~color:c ~radius:r loc
+
+let draw_rect sdl_area c w h loc =
+  Bogue.Sdl_area.fill_rectangle sdl_area ~color:c ~w ~h loc
+
+(* TODO @Vincent: make sure to enable random map color generation *)
+
+let draw_wall map sdl_area (x, y) (shift_x, shift_y) (w, h) =
+  let module D = Bogue.Draw in
+  let grey = color_of_rgb D.dark_grey 255 in
+  let w_2, h_2 = (w / 2, h / 2) in
+  let x_0, y_0 = ((x * w) + shift_x, (y * h) + shift_y) in
+  draw_circle sdl_area grey
+    ((w_2 + h_2) / 4) (* take average *)
+    (x_0 + w_2, y_0 + h_2);
+  let is_wall = function
+    | Wall -> true
+    | Empty _ -> false
+  in
+  let { data; size; _ } = map in
+  let x_max, y_max = size in
+  let top, right, bottom, left =
+    ( y != 0 && is_wall data.(x).(y - 1),
+      x < x_max - 1 && is_wall data.(x + 1).(y),
+      y < y_max - 1 && is_wall data.(x).(y + 1),
+      x != 0 && is_wall data.(x - 1).(y) )
+  in
+  let w_4, h_4 = (w / 4, h / 4) in
+  let w_2, h_2 = (w_2 + 1, h_2 + 1) in
+  let draw_grey_rect = draw_rect sdl_area grey in
+  if top then draw_grey_rect w_2 h_2 (x_0 + w_4, y_0);
+  if right then draw_grey_rect w_2 h_2 (x_0 + w_2, y_0 + h_4);
+  if bottom then draw_grey_rect w_2 h_2 (x_0 + w_4, y_0 + h_2);
+  if left then draw_grey_rect w_2 h_2 (x_0, y_0 + h_4)
+(* TODO @Vincent: implement inner curvature *)
+
+let draw_empty e sdl_area (x, y) (shift_x, shift_y) (w, h) =
+  let module D = Bogue.Draw in
+  (* draw background *)
+  draw_rect sdl_area (color_of_rgb D.cyan 100) w h
+    ((x * w) + shift_x, (y * h) + shift_y);
+  (* draw small coin *)
+  if e.scoin then ();
+  (* draw big coin *)
+  if e.bcoin then ();
+  (* draw boundary *)
+  draw_rect sdl_area
+    (color_of_rgb D.dark_grey 100)
+    (w + 2) (h + 2)
+    ((x * w) + shift_x - 1, (y * h) + shift_y - 1)
 
 let draw_map sdl_area (map : t) =
-  let open Bogue in
-  let w_to, h_to = Sdl_area.drawing_size sdl_area in
-  let w_from, h_from = (fst map.size, snd map.size) in
+  let w_to, h_to = Bogue.Sdl_area.drawing_size sdl_area in
+  let w_from, h_from = map.size in
   let scale = (w_to / w_from, h_to / h_from) in
+  let shift = (w_to mod w_from / 2, h_to mod h_from / 2) in
   for x = 0 to w_from - 1 do
     for y = 0 to h_from - 1 do
       let p = (x, y) in
       match map.data.(x).(y) with
-      | Wall -> draw_wall sdl_area p scale
-      | Empty e -> draw_empty sdl_area e p scale
+      | Wall ->
+          (* swap drawing order to disable color layering *)
+          draw_wall map sdl_area p shift scale;
+          draw_empty { bcoin = false; scoin = false } sdl_area p shift scale
+      | Empty e -> draw_empty e sdl_area p shift scale
     done
   done

@@ -16,7 +16,7 @@ let start_button_w = W.button "Start the Game"
 
 (*LAYOUT*)
 let start_title_l = L.resident start_title_w ~y:2
-let start_button_l = L.resident ~x:130 ~y:35 ~w:50 ~h:2 start_button_w
+let start_button_l = L.resident ~x:125 ~y:35 ~w:55 ~h:2 start_button_w
 
 (* TODO @GUI (post-MS2): a few more widgets to implement - a play/pause button -
    a reset button (has the same action as start button (just with the text
