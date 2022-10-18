@@ -1,5 +1,6 @@
 open Random
 
+(* TODO @Vincent: add that type e of type Item.t*)
 type e = {
   bcoin : bool;
   scoin : bool;
@@ -29,10 +30,11 @@ let valid_move map (x, y) =
 
 let start_pos t = t.start
 
-(* creates a pacmap with random size, say from 20 to 30 inclusive *)
+(* creates a pacmap with random size, say from 20 to 40 inclusive *)
+(* TODO @Vincent: update gen_map function *)
 let gen_map (seed : int) =
   let _ = init seed in
-  let s = int 11 + 20 in
+  let s = int 21 + 20 in
   let data = Array.make_matrix s s Wall in
   let data =
     Array.map
@@ -41,7 +43,7 @@ let gen_map (seed : int) =
            else Empty { bcoin = float 10. > 5.; scoin = float 20. > 10. }))
       data
   in
-  { data; (* dependent on s*) start = (0., 0.); size = (s, s) }
+  { (* dependent on s*) data; start = (0., 0.); size = (s, s) }
 
 let color_of_rgb c a =
   match c with
@@ -82,7 +84,6 @@ let draw_wall map sdl_area (x, y) (shift_x, shift_y) (w, h) =
   if right then draw_grey_rect w_2 h_2 (x_0 + w_2, y_0 + h_4);
   if bottom then draw_grey_rect w_2 h_2 (x_0 + w_4, y_0 + h_2);
   if left then draw_grey_rect w_2 h_2 (x_0, y_0 + h_4)
-(* TODO @Vincent: implement inner curvature *)
 
 let draw_empty e sdl_area (x, y) (shift_x, shift_y) (w, h) =
   let module D = Bogue.Draw in

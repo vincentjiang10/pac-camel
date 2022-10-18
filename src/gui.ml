@@ -15,13 +15,25 @@ let start_title_w =
 let start_button_w = W.button "Start the Game"
 
 (*LAYOUT*)
+
+(* TODO @GUI (optional): animate in the title + add hovering to buttons upon
+   user mouse hover event *)
+(* TODO (add keyboard options for quit (Q), play/pause (spacebar or P), and H (H
+   or ?); these would trigger events that the buttons that they correspond to
+   trigger *)
 let start_title_l = L.resident start_title_w ~y:2
 let start_button_l = L.resident ~x:125 ~y:35 ~w:55 ~h:2 start_button_w
 
-(* TODO @GUI (post-MS2): a few more widgets to implement - a play/pause button -
-   a reset button (has the same action as start button (just with the text
-   changed) - a text field to generate a map with a specific seed -> a button to
-   apply (or just reset) *)
+(* TODO @GUI (post-MS2): Implement more widgets 
+ *  - score displayer
+ *  - time displayer (perhaps we can set a time limit for the player)
+ *  - a play/pause button
+ *  - a reset button (has the same action as start button, just with the text changed) 
+ *  - a text field to generate a map with a specific seed -> a button to apply (or just reset) 
+ *  - a help button to open up a popup that shows the user the different features that are implemented
+ *  - (optional) an algorithm selection drop down menu that selects what algorithm that the humans follow 
+ *  - (optional) a speed and number of humans setting (set a minimum and maximum)
+ *)
 
 (* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
    undesirable behavior; perhaps set a minimum window dimension *)
