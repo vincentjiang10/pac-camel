@@ -85,11 +85,10 @@ let draw_wall map sdl_area (x, y) (shift_x, shift_y) (w, h) =
   if bottom then draw_grey_rect w_2 h_2 (x_0 + w_4, y_0 + h_2);
   if left then draw_grey_rect w_2 h_2 (x_0, y_0 + h_4)
 
-let draw_empty e sdl_area (x, y) (shift_x, shift_y) (w, h) =
+let draw_empty e c sdl_area (x, y) (shift_x, shift_y) (w, h) =
   let module D = Bogue.Draw in
   (* draw background *)
-  draw_rect sdl_area (color_of_rgb D.cyan 100) w h
-    ((x * w) + shift_x, (y * h) + shift_y);
+  draw_rect sdl_area c w h ((x * w) + shift_x, (y * h) + shift_y);
   (* draw small coin *)
   if e.scoin then ();
   (* draw big coin *)
@@ -105,6 +104,7 @@ let draw_map sdl_area (map : t) =
   let w_from, h_from = map.size in
   let scale = (w_to / w_from, h_to / h_from) in
   let shift = (w_to mod w_from / 2, h_to mod h_from / 2) in
+  let c = (int 255, int 255, int 255, 80) in
   for x = 0 to w_from - 1 do
     for y = 0 to h_from - 1 do
       let p = (x, y) in
@@ -112,7 +112,7 @@ let draw_map sdl_area (map : t) =
       | Wall ->
           (* swap drawing order to disable color layering *)
           draw_wall map sdl_area p shift scale;
-          draw_empty { bcoin = false; scoin = false } sdl_area p shift scale
-      | Empty e -> draw_empty e sdl_area p shift scale
+          draw_empty { bcoin = false; scoin = false } c sdl_area p shift scale
+      | Empty e -> draw_empty e c sdl_area p shift scale
     done
   done
