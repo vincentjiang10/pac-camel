@@ -1,6 +1,9 @@
 open Bogue
 open Main
 open Pacmap
+open Tsdl
+open Utils
+open Random
 module W = Widget
 module L = Layout
 module T = Trigger
@@ -22,7 +25,7 @@ let start_button_w = W.button "Start the Game"
    or ?); these would trigger events that the buttons that they correspond to
    trigger *)
 let start_title_l = L.resident start_title_w ~y:2
-let start_button_l = L.resident ~x:125 ~y:35 ~w:55 ~h:2 start_button_w
+let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
 
 (* TODO @GUI (post-MS2): Implement more widgets 
  *  - score displayer
@@ -37,13 +40,14 @@ let start_button_l = L.resident ~x:125 ~y:35 ~w:55 ~h:2 start_button_w
 
 (* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
    undesirable behavior; perhaps set a minimum window dimension *)
-let canvas = W.sdl_area ~w:600 ~h:600 ()
-let canvas_l = L.resident ~x:200 ~y:40 canvas
+let canvas = W.sdl_area ~w:500 ~h:500 ()
+let canvas_l = L.resident ~w:50 ~h:50 ~x:0 ~y:0 canvas
 
-(* TODO: temporary -> will need to transition to camel code in camel.ml *)
-let camel_image =
-  let src = W.image ~w:40 ~h:40 "assets/images/camel-cartoon.png" in
-  L.resident ~x:500 ~y:300 src
+type tmprect = {
+  rect : Sdl.rect;
+  color : int * int * int;
+  created : int;
+}
 
 let sdl_area = W.get_sdl_area canvas
 
@@ -54,20 +58,20 @@ let reset_map (seed : int) =
 
 (* sets up the game *)
 let reset_game seed = reset_map seed
+let bg = (255, 255, 255, 255)
 
-(* TODO @GUI: add to this function, which should initialize gui widgets (be
-   prepared to take in functions that should be called based on widget events)*)
-let greeting =
+let make_board () =
   (* set what to be drawn *)
-  let layout = L.superpose [ start_title_l; start_button_l ] in
-  (* set default window size *)
-  let _ = Timeout.add 1 (fun () -> L.set_size layout (1000, 800)) in
+  (* TODO @GUI: clicking on widgets do not work: try to fix *)
+  reset_game (int 10000);
+  let layout = L.flat [ canvas_l ] in
 
+  (* TODO @GUI: fix widget dimensions ans positions *)
   (* TODO @GUI: fix error where initial click does not generate correct map *)
   (* action to be connected to start button *)
   let start_action _ _ _ =
-    reset_game (Random.int 400);
-    L.set_rooms layout [ start_button_l; canvas_l; camel_image ]
+    reset_game (int 10000);
+    L.set_rooms layout [ start_button_l; canvas_l ]
     (* this line replace current layout with an empty list, add widgets (to be
        drawn after start) in this list e.g. map, camel, human etc. *)
   in
@@ -75,5 +79,64 @@ let greeting =
   let c = W.connect start_button_w start_button_w start_action T.buttons_down in
 
   (* set up board *)
-  let board = of_layout ~connections:[ c ] layout in
-  run board
+  of_layout ~connections:[ c ] layout
+
+let main () =
+  let open Sdl in
+  Sys.catch_break true;
+  go (Sdl.init Sdl.Init.video);
+  let win =
+    go
+      (Sdl.create_window ~w:800 ~h:800 "Pac-Camel Game" Sdl.Window.(popup_menu))
+  in
+  let renderer = go (Sdl.create_renderer win) in
+  (* very important: set blend mode: *)
+  go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
+  Draw.set_color renderer bg;
+  go (Sdl.render_clear renderer);
+  self_init ();
+
+  (* let show_gui = ref true in *)
+  let board = make_board () in
+  make_sdl_windows ~windows:[ win ] board;
+  let start_fps, fps = Time.adaptive_fps 60 in
+
+  let rec mainloop e =
+    (if Sdl.poll_event (Some e) then
+     match Trigger.event_kind e with
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
+         (* show_gui := not !show_gui; *)
+         print_endline "up"
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
+         print_endline "right"
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
+         print_endline "down"
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
+         print_endline "left"
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.r ->
+         reset_game (int 10000)
+     | _ -> ());
+    Draw.set_color renderer bg;
+    go (Sdl.render_clear renderer);
+
+    if true then begin
+      refresh_custom_windows board;
+      if
+        not (one_step true (start_fps, fps) board)
+        (* one_step returns true if fps was executed *)
+      then fps ()
+    end
+    else fps ();
+    Sdl.render_present renderer;
+    mainloop e
+  in
+
+  let e = Sdl.Event.create () in
+  start_fps ();
+  let () = try mainloop e with e -> raise e in
+  Sdl.destroy_window win;
+  Draw.quit ()
+
+(* TODO @GUI: add to this function, which should initialize gui widgets (be
+   prepared to take in functions that should be called based on widget events)*)
+let greeting = main ()
