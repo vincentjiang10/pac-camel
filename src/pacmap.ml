@@ -20,10 +20,7 @@ type t = {
 
 (* is [(x, y)] in [t] = type [e] *)
 (* keep in mind that a camel should only move along the midline of each cell *)
-(* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
-   Empty + Update game state before clearing depending on item and
-   camel_state *)
-let valid_move map camel_state (x, y) =
+let valid_move map (x, y) =
   let flr f = f |> floor |> int_of_float in
   let y = flr y in
   let x = flr x in
@@ -31,8 +28,12 @@ let valid_move map camel_state (x, y) =
   else
     match map.data.(x).(y) with
     | Wall -> false
-    | Floor item -> true
+    | Floor _ -> true
 
+(* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
+   Empty + Update game state before clearing depending on item and
+   camel_state *)
+let update_camel_state c (x, y) = c
 let start_pos t = t.start
 
 (* draw a line segment of walls of length len from (x, y) in direction dir and

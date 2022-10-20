@@ -8,7 +8,11 @@ type t
 
 (** [valid move t c p] is true if moving camel [c] to point [p] in pacmap [t] is
     valid. Updates game state. *)
-val valid_move : t -> 'a -> float * float -> bool
+val valid_move : t -> float * float -> bool
+
+(** [update_camel_state s p] returns the updated state if camel with state [s]
+    moves to point [p] *)
+val update_camel_state : 'a -> float * float -> 'a
 
 (** [start_pos t] is the starting point of the camel in pacmap [t] *)
 val start_pos : t -> float * float
