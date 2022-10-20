@@ -87,7 +87,8 @@ let main () =
   go (Sdl.init Sdl.Init.video);
   let win =
     go
-      (Sdl.create_window ~w:800 ~h:800 "Pac-Camel Game" Sdl.Window.(popup_menu))
+      (Sdl.create_window ~w:800 ~h:800 "Pac-Camel Game"
+         Sdl.Window.(shown + popup_menu))
   in
   let renderer = go (Sdl.create_renderer win) in
   (* very important: set blend mode: *)
@@ -113,19 +114,18 @@ let main () =
          print_endline "down"
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
          print_endline "left"
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.r ->
-         reset_game (int 10000)
+     | `Key_down
+       when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
+       -> reset_game (int 10000)
      | _ -> ());
     Draw.set_color renderer bg;
     go (Sdl.render_clear renderer);
 
-    if true then begin
-      refresh_custom_windows board;
-      if
-        not (one_step true (start_fps, fps) board)
-        (* one_step returns true if fps was executed *)
-      then fps ()
-    end
+    refresh_custom_windows board;
+    if
+      not (one_step true (start_fps, fps) board)
+      (* one_step returns true if fps was executed *)
+    then fps ()
     else fps ();
     Sdl.render_present renderer;
     mainloop e
@@ -133,7 +133,7 @@ let main () =
 
   let e = Sdl.Event.create () in
   start_fps ();
-  let () = try mainloop e with e -> raise e in
+  let () = try mainloop e with _ -> exit 0 in
   Sdl.destroy_window win;
   Draw.quit ()
 

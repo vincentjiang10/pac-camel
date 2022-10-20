@@ -1,14 +1,16 @@
 open Random
 
-(* TODO @Vincent: add that type e of type Item.t*)
-type e = {
-  bcoin : bool;
-  scoin : bool;
-}
+(* NOTE: the drawing of items will not be on sdl_area but on the window
+   renderer *)
+(* A function written will be called that takes in map t and renders the items
+   with their respective animations *)
+type e =
+  | Empty
+  | Item of Item.t
 
 type space =
   | Wall
-  | Empty of e
+  | Floor of e
 
 type t = {
   data : space array array;
@@ -18,7 +20,10 @@ type t = {
 
 (* is [(x, y)] in [t] = type [e] *)
 (* keep in mind that a camel should only move along the midline of each cell *)
-let valid_move map (x, y) =
+(* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
+   Empty + Update game state before clearing depending on item and
+   camel_state *)
+let valid_move map camel_state (x, y) =
   let flr f = f |> floor |> int_of_float in
   let y = flr y in
   let x = flr x in
@@ -26,24 +31,123 @@ let valid_move map (x, y) =
   else
     match map.data.(x).(y) with
     | Wall -> false
-    | Empty _ -> true
+    | Floor item -> true
 
 let start_pos t = t.start
 
-(* creates a pacmap with random size, say from 20 to 40 inclusive *)
+(* draw a line segment of walls of length len from (x, y) in direction dir and
+   returns the end point of that segment*)
+let rec draw_walls data s (dir_x, dir_y) (x, y) len =
+  if len != 0 && min x y >= 0 && max x y < s then begin
+    data.(x).(y) <- Wall;
+    draw_walls data s (dir_x, dir_y) (x + dir_x, y + dir_y) (len - 1)
+  end
+  else (x - dir_x, y - dir_y)
+
+(* takes in an empty map data and sets up human starting zone in the center *)
+let start_map data s =
+  let mid = s / 2 in
+  let walls = draw_walls data s in
+  (* starting "room" containing humans *)
+  let p = walls (1, 0) (mid + 1, mid - 1) 2 in
+  let p = walls (0, 1) p 3 in
+  let _ = walls (-1, 0) p 3 in
+  (* generate boundary *)
+  let rec gen_bump (dir_x, dir_y) (x, y) (l1, l2) =
+    let p = walls (dir_x, dir_y) (x, y) l1 in
+    let p = walls (dir_y, -dir_x) p l2 in
+    let p_x, p_y = walls (-dir_x, -dir_y) p l1 in
+    let prob = float 1. in
+    let thres = 10 in
+    let p_skip = (p_x + (2 * dir_y), p_y - (2 * dir_x)) in
+    let p_skip_x, p_skip_y = p_skip in
+    if prob > 0.9 then walls (dir_y, -dir_x) p_skip (3 + int 3)
+    else if
+      prob > 0.5 && (dir_y * p_skip_x) + (-dir_x * p_skip_y) + thres <= s - 1
+    then gen_bump (dir_x, dir_y) p_skip (3 + int 3, 3 + int 3)
+    else walls (dir_y, -dir_x) (p_x, p_y) (3 + int 3)
+  in
+  let rec gen_boundary (dir_x, dir_y) (x_i, y_i) (x_f, y_f) =
+    let l1 = 2 + int 3 in
+    let l2 = 4 + int 2 in
+    let thres = 5 in
+    if x_i > x_f || y_i > y_f then ()
+    else if
+      float 1. > 0.9
+      && x_i >= dir_x * (mid + thres)
+      && y_i >= dir_y * thres
+      (* +thres to not generate bumps near corners of boundary *)
+      && x_i + (dir_x * (l2 + thres)) <= x_f
+      && y_i + (dir_y * (l2 + thres)) <= y_f
+    then
+      let p = gen_bump (-dir_y, dir_x) (x_i, y_i) (l1, l2) in
+      gen_boundary (dir_x, dir_y) p (x_f, y_f)
+    else begin
+      data.(x_i).(y_i) <- Wall;
+      gen_boundary (dir_x, dir_y) (x_i + dir_x, y_i + dir_y) (x_f, y_f)
+    end
+  in
+  (* top half boundary *)
+  gen_boundary (1, 0) (mid, 0) (s - 1, 0);
+  (* reflect over x axis to get bottom half boundary *)
+  let mirror_down_x data s =
+    for x = mid to s - 1 do
+      for y = mid + 10 to s - 1 do
+        data.(x).(y) <- data.(x).(s - 1 - y)
+      done
+    done
+  in
+  mirror_down_x data s;
+  (* right boundary *)
+  gen_boundary (0, 1) (s - 1, 0) (s - 1, s - 1)
+
+type shape_type =
+  | I (* I shape *)
+  | L (* L shape *)
+
+(* takes in a starting map and populates it with tetris blocks representing
+   paths *)
+let populate_map data s =
+  let rec gen_tetris (x, y) st len =
+    let l1 = 4 + int 4 in
+    let l2 = 4 + int 4 in
+    let walls = draw_walls data s in
+    (* TODO @Vincent: add more shapes? *)
+    if st = L then () else ()
+  in
+  let mid = s / 2 in
+  let rec add_piece (x, y) st = () in
+  add_piece (mid, 2) L;
+  (* adding initial items to map *)
+  for x = 0 to s - 1 do
+    for y = 0 to s - 1 do
+      if data.(x).(y) = Floor Empty then
+        data.(x) (* TODO @Vincent: run probability of item appearing on floor *).(
+        y) <- Floor Empty
+    done
+  done
+
+(* copies the right half of data over the y-axis to the left *)
+let mirror_left_y data s =
+  let mid = s / 2 in
+  for x = 0 to mid - 1 do
+    for y = 0 to s - 1 do
+      data.(x).(y) <- data.(s - 1 - x).(y)
+    done
+  done
+
+(* creates a pacmap with random odd size *)
 (* TODO @Vincent: update gen_map function *)
 let gen_map (seed : int) =
   let _ = init seed in
-  let s = int 21 + 20 in
-  let data = Array.make_matrix s s Wall in
-  let data =
-    Array.map
-      (Array.map (fun _ ->
-           if float 1. > 0.5 then Wall
-           else Empty { bcoin = float 10. > 5.; scoin = float 20. > 10. }))
-      data
-  in
+  let s = (int 15 * 2) + 31 in
+  let data = Array.make_matrix s s (Floor Empty) in
+  start_map data s;
+  populate_map data s;
+  mirror_left_y data s;
   { (* dependent on s*) data; start = (0., 0.); size = (s, s) }
+
+let add_item map = map
 
 let color_of_rgb c a =
   match c with
@@ -55,8 +159,6 @@ let draw_circle sdl_area c r loc =
 let draw_rect sdl_area c w h loc =
   Bogue.Sdl_area.fill_rectangle sdl_area ~color:c ~w ~h loc
 
-(* TODO @Vincent: make sure to enable random map color generation *)
-
 let draw_wall map sdl_area (x, y) (shift_x, shift_y) (w, h) =
   let module D = Bogue.Draw in
   let grey = color_of_rgb D.dark_grey 255 in
@@ -67,7 +169,7 @@ let draw_wall map sdl_area (x, y) (shift_x, shift_y) (w, h) =
     (x_0 + w_2, y_0 + h_2);
   let is_wall = function
     | Wall -> true
-    | Empty _ -> false
+    | Floor _ -> false
   in
   let { data; size; _ } = map in
   let x_max, y_max = size in
@@ -85,14 +187,10 @@ let draw_wall map sdl_area (x, y) (shift_x, shift_y) (w, h) =
   if bottom then draw_grey_rect w_2 h_2 (x_0 + w_4, y_0 + h_2);
   if left then draw_grey_rect w_2 h_2 (x_0, y_0 + h_4)
 
-let draw_empty e c sdl_area (x, y) (shift_x, shift_y) (w, h) =
+let draw_floor c sdl_area (x, y) (shift_x, shift_y) (w, h) =
   let module D = Bogue.Draw in
   (* draw background *)
   draw_rect sdl_area c w h ((x * w) + shift_x, (y * h) + shift_y);
-  (* draw small coin *)
-  if e.scoin then ();
-  (* draw big coin *)
-  if e.bcoin then ();
   (* draw boundary *)
   draw_rect sdl_area
     (color_of_rgb D.dark_grey 100)
@@ -112,7 +210,7 @@ let draw_map sdl_area (map : t) =
       | Wall ->
           (* swap drawing order to disable color layering *)
           draw_wall map sdl_area p shift scale;
-          draw_empty { bcoin = false; scoin = false } c sdl_area p shift scale
-      | Empty e -> draw_empty e c sdl_area p shift scale
+          draw_floor c sdl_area p shift scale
+      | Floor _ -> draw_floor c sdl_area p shift scale
     done
   done

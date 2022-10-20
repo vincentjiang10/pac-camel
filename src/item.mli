@@ -6,6 +6,8 @@
 
 type t
 
+val probability : t -> float
+val period : t -> int
 val effect : t -> unit
 val animate : t -> unit
 (* TODO (once main graphics loop is implemented): implement an animation
