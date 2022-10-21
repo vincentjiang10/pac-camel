@@ -41,7 +41,7 @@ let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
 (* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
    undesirable behavior; perhaps set a minimum window dimension *)
 let canvas = W.sdl_area ~w:500 ~h:500 ()
-let canvas_l = L.resident ~w:50 ~h:50 ~x:0 ~y:0 canvas
+let canvas_l = L.resident ~w:200 ~h:200 ~x:0 ~y:0 canvas
 
 type tmprect = {
   rect : Sdl.rect;
