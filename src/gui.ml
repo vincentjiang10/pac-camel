@@ -43,6 +43,10 @@ let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
 let canvas = W.sdl_area ~w:500 ~h:500 ()
 let canvas_l = L.resident ~w:200 ~h:200 ~x:0 ~y:0 canvas
 
+(* reference to map *)
+let map = ref (gen_map (int 500))
+let camel = ref (Camel.init !map "test")
+
 type tmprect = {
   rect : Sdl.rect;
   color : int * int * int;
@@ -53,8 +57,9 @@ let sdl_area = W.get_sdl_area canvas
 
 let reset_map (seed : int) =
   (* reset canvas *)
-  let _ = Sdl_area.clear sdl_area in
-  draw_map sdl_area (gen_map seed)
+  Sdl_area.clear sdl_area;
+  map := gen_map seed;
+  draw_map sdl_area !map
 
 (* sets up the game *)
 let reset_game seed = reset_map seed
@@ -70,7 +75,7 @@ let make_board () =
   (* TODO @GUI: fix error where initial click does not generate correct map *)
   (* action to be connected to start button *)
   let start_action _ _ _ =
-    reset_game (int 10000);
+    (* reset_game (int 10000); *)
     L.set_rooms layout [ start_button_l; canvas_l ]
     (* this line replace current layout with an empty list, add widgets (to be
        drawn after start) in this list e.g. map, camel, human etc. *)
@@ -106,7 +111,6 @@ let main () =
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         (* show_gui := not !show_gui; *)
          print_endline "up"
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
          print_endline "right"

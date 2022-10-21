@@ -8,21 +8,22 @@ type e =
   | Empty
   | Item of Item.t
 
-type space =
+type cell =
   | Wall
   | Floor of e
 
 type t = {
-  data : space array array;
+  mutable data : cell array array;
   start : float * float;
   size : int * int;
 }
 
+(* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
+   Empty + Update game state before clearing depending on item and
+   camel_state *)
+
 (* Note: a camel should only move along the midline of each cell *)
 let valid_move map (x, y) =
-  let flr f = f |> floor |> int_of_float in
-  let y = flr y in
-  let x = flr x in
   if x < 0 || y < 0 || x >= fst map.size || y >= snd map.size then false
   else
     match map.data.(x).(y) with
@@ -30,12 +31,8 @@ let valid_move map (x, y) =
     | Floor _ -> true
 
 let valid_xy s (x, y) = min x y >= 0 && max x y < s
-
-(* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
-   Empty + Update game state before clearing depending on item and
-   camel_state *)
-let update_camel_state c (x, y) = c
 let start_pos t = t.start
+let size t = t.size
 
 module Point = struct
   type t = int * int
@@ -45,8 +42,8 @@ end
 
 module PointSet = Set.Make (Point)
 
-(* wall boundary: a set of points (x, y) denoting the boundary of the valid
-   space to draw walls. It is *)
+(* wall boundary: a set of points (x, y) denoting the boundary of the valid cell
+   to draw walls. It is *)
 let wb = ref PointSet.empty
 let wb_remove (x, y) = wb := PointSet.remove (x, y) !wb
 let wb_add (x, y) = wb := PointSet.add (x, y) !wb
@@ -93,7 +90,7 @@ let start_map data s =
   (* starting "room" containing humans *)
   let p = walls (1, 0) (mid + 1, mid - 1) 2 in
   let p = walls (0, 1) p 3 in
-  let _ = walls (-1, 0) p 3 in
+  walls (-1, 0) p 3 |> ignore;
 
   (* generate bump *)
   let rec gen_bump (dir_x, dir_y) (x, y) (l1, l2) =
@@ -103,14 +100,14 @@ let start_map data s =
         l1
     in
     let p_add = wb_edit Add data s (dir_y, -dir_x) p_add (l2 + 4) in
-    let _ = wb_edit Add data s (-dir_x, -dir_y) p_add l1 in
+    wb_edit Add data s (-dir_x, -dir_y) p_add l1 |> ignore;
     let p_remove =
       wb_edit Remove data s (dir_x, dir_y)
         (x + (dir_x - dir_y), y + (dir_x + dir_y))
         l1
     in
     let p_remove = wb_edit Remove data s (dir_y, -dir_x) p_remove (l2 + 2) in
-    let _ = wb_edit Remove data s (-dir_x, -dir_y) p_remove l1 in
+    wb_edit Remove data s (-dir_x, -dir_y) p_remove l1 |> ignore;
     let p = walls (dir_x, dir_y) (x, y) l1 in
     let p = walls (dir_y, -dir_x) p l2 in
     let p_x, p_y = walls (-dir_x, -dir_y) p l1 in
@@ -118,15 +115,14 @@ let start_map data s =
     let thres = 10 in
     let p_skip = (p_x + (2 * dir_y), p_y - (2 * dir_x)) in
     let p_skip_x, p_skip_y = p_skip in
-    if prob > 0.5 && (dir_y * p_skip_x) + (-dir_x * p_skip_y) + thres <= s - 1
+    if prob > 0.7 && (dir_y * p_skip_x) + (-dir_x * p_skip_y) + thres <= s - 1
     then gen_bump (dir_x, dir_y) p_skip (3 + int 3, 3 + int 3)
     else
-      let len = 3 + int 3 in
-      let _ =
-        wb_edit Add data s (dir_y, -dir_x)
-          (p_skip_x + (2 * dir_x), p_skip_y + (2 * dir_y))
-          len
-      in
+      let len = 4 + int 3 in
+      wb_edit Add data s (dir_y, -dir_x)
+        (p_skip_x + (2 * dir_x), p_skip_y + (2 * dir_y))
+        len
+      |> ignore;
       walls (dir_y, -dir_x) p_skip len
   in
 
@@ -158,7 +154,7 @@ let start_map data s =
   let wb_edit_add = wb_edit Add data s in
   let p = wb_edit_add (0, 1) (mid, 3) (mid - 5) in
   let p = wb_edit_add (1, 0) p 5 in
-  let _ = wb_edit_add (0, 1) p 7 in
+  wb_edit_add (0, 1) p 7 |> ignore;
 
   (* drawing the boundary *)
 
@@ -230,8 +226,8 @@ let mirror_left_y data s =
 (* Creates a pacmap with random odd size *)
 (* TODO @Vincent: update gen_map function *)
 let gen_map (seed : int) =
-  let _ = init seed in
-  let s = (int 15 * 2) + 31 in
+  init seed;
+  let s = (int 20 * 2) + 31 in
   let data = Array.make_matrix s s (Floor Empty) in
   wb := PointSet.empty;
   start_map data s;
@@ -240,7 +236,8 @@ let gen_map (seed : int) =
   mirror_left_y data s;
   { data; start = (0., 0.); size = (s, s) }
 
-let add_item map = map
+(* mutate map data to include a random item at a Floor cell *)
+let add_item map = ()
 
 let color_of_rgb c a =
   match c with
