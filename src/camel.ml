@@ -19,3 +19,6 @@ let move t (map : Pacmap.t) (x, y) =
 let init map image =
   let pos = start_pos map in
   { x = fst pos; y = snd pos; src = image; speed = 1. }
+
+let get_src t = t.src
+let get_src t = t.src

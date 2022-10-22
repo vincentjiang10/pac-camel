@@ -16,3 +16,5 @@ val move : t -> Pacmap.t -> float * float -> t
 (** [init t s] is a camel with source image at [s] and dimensions and position
     depending on [t] *)
 val init : Pacmap.t -> string -> t
+
+val get_src : t -> string

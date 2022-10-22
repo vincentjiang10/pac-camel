@@ -4,6 +4,8 @@ open Pacmap
 open Tsdl
 open Utils
 open Random
+open Camel
+open Sdl
 module W = Widget
 module L = Layout
 module T = Trigger
@@ -41,7 +43,16 @@ let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
 (* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
    undesirable behavior; perhaps set a minimum window dimension *)
 let canvas = W.sdl_area ~w:500 ~h:500 ()
-let canvas_l = L.resident ~w:50 ~h:50 ~x:0 ~y:0 canvas
+let canvas_l = L.resident ~w:200 ~h:200 ~x:0 ~y:0 canvas
+
+(* reference to map *)
+let map = ref (gen_map (int 500))
+let camel = ref (Camel.init !map "assets/images/camel-cartoon.png")
+
+let texture r =
+  let camel_surface = Tsdl_image.Image.load "assets/images/camel-cartoon.png" in
+  let t = create_texture_from_surface r (Result.get_ok camel_surface) in
+  go t
 
 type tmprect = {
   rect : Sdl.rect;
@@ -49,7 +60,11 @@ type tmprect = {
   created : int;
 }
 
+let camel_w = W.sdl_area ~w:20 ~h:20 ()
+let camel_l = L.resident ~w:20 ~h:20 ~x:0 ~y:0 camel_w
+let camel_area = W.get_sdl_area camel_w
 let sdl_area = W.get_sdl_area canvas
+let reset_camel r = go (render_copy r (texture r))
 
 let reset_map (seed : int) =
   (* reset canvas *)
@@ -64,7 +79,7 @@ let make_board () =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
   reset_game (int 10000);
-  let layout = L.flat [ canvas_l ] in
+  let layout = L.superpose [ canvas_l; camel_l ] in
 
   (* TODO @GUI: fix widget dimensions ans positions *)
   (* TODO @GUI: fix error where initial click does not generate correct map *)
@@ -110,11 +125,16 @@ let main () =
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
          print_endline "right"
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         print_endline "down"
+         print_endline "down";
+         Sdl_area.set_texture camel_area (texture renderer)
+     (* Result.get_ok (render_copy renderer (texture renderer)) *)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
          print_endline "left"
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.r ->
-         reset_game (int 10000)
+     | `Key_down
+       when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
+       ->
+         reset_game (int 10000);
+         Sdl_area.set_texture camel_area (texture renderer)
      | _ -> ());
     Draw.set_color renderer bg;
     go (Sdl.render_clear renderer);
