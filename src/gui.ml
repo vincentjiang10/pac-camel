@@ -129,7 +129,7 @@ let main () =
     Draw.set_color renderer (100, 100, 20, 200);
     let x, y = Camel.get_pos !camel in
     (* replace render_fill_rect with rendering an image of a camel *)
-    go (Sdl.render_fill_rect renderer (Some (new_rect 50 740 740)));
+    go (Sdl.render_fill_rect renderer (Some (new_rect 50 x y)));
     refresh_custom_windows board;
     if
       not (one_step true (start_fps, fps) board)
