@@ -8,22 +8,15 @@ open Pacmap
 type camel_state = { has_2x : bool }
 
 type t = {
-  mutable x : int;
-  mutable y : int;
+  mutable pos : int * int;
+  mutable size : int * int;
   mutable speed : int;
   mutable state : camel_state;
   src : string;
 }
 
-let get_x t = t.x
-let get_y t = t.y
-let get_pos t = (t.x, t.y)
-let update_x t x = t.x <- x
-let update_y t y = t.y <- y
-
-let update_pos t (x, y) =
-  update_x t x;
-  update_y t y
+let get_pos t = t.pos
+let update_pos t p = t.pos <- p
 
 (* scales the point from one dimension to another *)
 let scale (from_w, from_h) (to_w, to_h) p = p
@@ -41,11 +34,7 @@ let move t map (x, y) = ()
 
 let init map image =
   let win_size = (800, 800) in
-  let pos = start_pos map |> scale (size map) win_size in
-  {
-    x = fst pos;
-    y = snd pos;
-    src = image;
-    speed = 1;
-    state = { has_2x = false };
-  }
+  let scale = scale (size map) win_size in
+  let pos = start_pos map |> scale in
+  let size = (1, 1) |> scale in
+  { pos; size; src = image; speed = 1; state = { has_2x = false } }
