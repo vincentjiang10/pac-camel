@@ -60,16 +60,14 @@ type tmprect = {
   created : int;
 }
 
-let camel_w = W.sdl_area ~w:20 ~h:20 ()
-let camel_l = L.resident ~w:20 ~h:20 ~x:0 ~y:0 camel_w
-let camel_area = W.get_sdl_area camel_w
 let sdl_area = W.get_sdl_area canvas
-let reset_camel r = go (render_copy r (texture r))
+(* let reset_camel r = go (render_copy r (texture r)) *)
 
 let reset_map (seed : int) =
   (* reset canvas *)
   Sdl_area.clear sdl_area;
   map := gen_map seed;
+  (* camel := Camel.init !map "assets/images/camel-cartoon.png"; *)
   draw_map sdl_area !map
 
 (* sets up the game *)
@@ -80,7 +78,7 @@ let make_board () =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
   reset_game (int 10000);
-  let layout = L.superpose [ canvas_l; camel_l ] in
+  let layout = L.superpose [ canvas_l; Camel.get_layout !camel ] in
 
   (* TODO @GUI: fix widget dimensions ans positions *)
   (* TODO @GUI: fix error where initial click does not generate correct map *)
@@ -116,27 +114,45 @@ let main () =
   let board = make_board () in
   make_sdl_windows ~windows:[ win ] board;
   let start_fps, fps = Time.adaptive_fps 60 in
-
+  let camel_texture =
+    let camel_surface =
+      Tsdl_image.Image.load "assets/images/camel-cartoon.png"
+    in
+    let t = create_texture_from_surface renderer (go camel_surface) in
+    go t
+  in
+  let camel_x = get_x !camel in
+  let camel_y = get_y !camel in
   let rec mainloop e =
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
          print_endline "up"
+     (* Camel.move !camel !map (Camel.get_x !camel, Camel.get_y !camel +. 1.); *)
+     (* Sdl_area.set_texture (get_area !camel) (texture renderer) *)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
          print_endline "right"
+     (* Camel.move !camel !map (Camel.get_x !camel +. 1., Camel.get_y !camel) *)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         print_endline "down";
-         Sdl_area.set_texture camel_area (texture renderer)
+         print_endline "down"
+     (* Camel.move !camel !map (camel_x +. 20., camel_y +. 20.); *)
+     (* Camel.move !camel !map (20., 20.); *)
+     (* Sdl_area.set_texture (get_area !camel) camel_texture *)
      (* Result.get_ok (render_copy renderer (texture renderer)) *)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
          print_endline "left"
+     (* Camel.move !camel !map (Camel.get_x !camel -. 1., Camel.get_y !camel) *)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
+         print_endline "restart";
          reset_game (int 10000);
-         Sdl_area.set_texture camel_area (texture renderer)
+         (* Sdl_area.set_texture (get_area !camel) camel_texture *)
+         go (render_copy renderer camel_texture)
      | _ -> ());
+
     Draw.set_color renderer bg;
+
     go (Sdl.render_clear renderer);
     refresh_custom_windows board;
     if
