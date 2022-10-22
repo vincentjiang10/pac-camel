@@ -14,7 +14,7 @@ type cell =
 
 type t = {
   mutable data : cell array array;
-  start : float * float;
+  start : int * int;
   size : int * int;
 }
 
@@ -229,7 +229,7 @@ let gen_map (seed : int) =
   populate_map data s;
   test_wb data;
   mirror_left_y data s;
-  { data; start = (0., 0.); size = (s, s) }
+  { data; start = (0, 0); size = (s, s) }
 
 (* mutate map data to include a random item at a Floor cell *)
 let add_item map = ()

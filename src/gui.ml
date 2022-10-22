@@ -9,6 +9,10 @@ module L = Layout
 module T = Trigger
 
 (* SETUP *)
+
+let width = 800
+let height = 800
+
 (* WIDGETS*)
 let start_title_w =
   W.label ~size:32
@@ -46,13 +50,6 @@ let canvas_l = L.resident ~w:200 ~h:200 ~x:0 ~y:0 canvas
 (* reference to map *)
 let map = ref (gen_map (int 5000))
 let camel = ref (Camel.init !map "test")
-
-type tmprect = {
-  rect : Sdl.rect;
-  color : int * int * int;
-  created : int;
-}
-
 let sdl_area = W.get_sdl_area canvas
 
 let reset_map (seed : int) =
@@ -85,6 +82,11 @@ let make_board () =
   let c = W.connect start_button_w start_button_w start_action T.buttons_down in
   (* set up board *)
   of_layout ~connections:[ c ] layout
+
+let new_rect size x y =
+  let w = size in
+  let h = size in
+  Sdl.Rect.create ~x ~y ~w ~h
 
 let main () =
   let open Sdl in
@@ -124,6 +126,10 @@ let main () =
      | _ -> ());
     Draw.set_color renderer bg;
     go (Sdl.render_clear renderer);
+    Draw.set_color renderer (100, 100, 20, 200);
+    let x, y = Camel.get_pos !camel in
+    (* replace render_fill_rect with rendering an image of a camel *)
+    go (Sdl.render_fill_rect renderer (Some (new_rect 50 740 740)));
     refresh_custom_windows board;
     if
       not (one_step true (start_fps, fps) board)
