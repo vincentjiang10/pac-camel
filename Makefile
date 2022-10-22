@@ -16,6 +16,7 @@ play:
 
 clean:
 	dune clean
+	rm -f pac_camel.zip
 
 doc:
 	dune build @doc

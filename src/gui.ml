@@ -44,7 +44,7 @@ let canvas = W.sdl_area ~w:500 ~h:500 ()
 let canvas_l = L.resident ~w:200 ~h:200 ~x:0 ~y:0 canvas
 
 (* reference to map *)
-let map = ref (gen_map (int 500))
+let map = ref (gen_map (int 5000))
 let camel = ref (Camel.init !map "test")
 
 type tmprect = {
@@ -68,7 +68,8 @@ let bg = (255, 255, 255, 255)
 let make_board () =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  reset_game (int 10000);
+  (* reset_game (int 10000); -> does not render correctly *)
+  (* TODO @GUI: if widgets do not work, then display a screen with instructions *)
   let layout = L.flat [ canvas_l ] in
 
   (* TODO @GUI: fix widget dimensions ans positions *)
@@ -82,7 +83,6 @@ let make_board () =
   in
   (* connect action to button. Triggered when button is pushed*)
   let c = W.connect start_button_w start_button_w start_action T.buttons_down in
-
   (* set up board *)
   of_layout ~connections:[ c ] layout
 
@@ -124,7 +124,6 @@ let main () =
      | _ -> ());
     Draw.set_color renderer bg;
     go (Sdl.render_clear renderer);
-
     refresh_custom_windows board;
     if
       not (one_step true (start_fps, fps) board)
@@ -142,5 +141,6 @@ let main () =
   Draw.quit ()
 
 (* TODO @GUI: add to this function, which should initialize gui widgets (be
-   prepared to take in functions that should be called based on widget events)*)
+   prepared to take in functions that should be called based on widget
+   events) *)
 let greeting = main ()

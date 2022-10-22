@@ -42,48 +42,63 @@ end
 
 module PointSet = Set.Make (Point)
 
-(* wall boundary: a set of points (x, y) denoting the boundary of the valid cell
-   to draw walls. It is *)
-let wb = ref PointSet.empty
-let wb_remove (x, y) = wb := PointSet.remove (x, y) !wb
-let wb_add (x, y) = wb := PointSet.add (x, y) !wb
+(* Wall set: a set of all points (x, y) representing a wall in pacmap *)
+let wall_set = ref PointSet.empty
 
-type wb_edit_type =
-  | Add
-  | Remove
+(* Wall boundary: a set of points (x, y) denoting the boundary of the valid cell
+   to draw walls. *)
+let wall_boundary = ref PointSet.empty
+let add p s = s := PointSet.add p !s
 
-let wall_check data s (x, y) =
-  let is_wall (x, y) = valid_xy s (x, y) && data.(x).(y) = Wall in
-  if is_wall (x, y - 1) then false
-  else if is_wall (x + 1, y - 1) then false
-  else if is_wall (x + 1, y) then false
-  else if is_wall (x + 1, y + 1) then false
-  else if is_wall (x, y + 1) then false
-  else if is_wall (x - 1, y + 1) then false
-  else if is_wall (x - 1, y) then false
-  else if is_wall (x - 1, y - 1) then false
-  else true
+let add_wall data (x, y) =
+  data.(x).(y) <- Wall;
+  add (x, y) wall_set
 
-let rec wb_edit w_e_t data s (dir_x, dir_y) (x, y) len =
-  if len != 0 && valid_xy s (x, y) then begin
-    if w_e_t = Remove then wb_remove (x, y)
-    else if w_e_t = Add then
-      if wall_check data s (x, y) && min x y >= 2 && max x y <= s - 3 then
-        wb_add (x, y);
-    wb_edit w_e_t data s (dir_x, dir_y) (x + dir_x, y + dir_y) (len - 1)
-  end
-  else (x - dir_x, y - dir_y)
+let remove p s = s := PointSet.remove p !s
+let empty s = s := PointSet.empty
 
 (* Draw a line segment of walls of length len from (x, y) in direction dir and
    returns the end point of that segment*)
 let rec draw_walls data s (dir_x, dir_y) (x, y) len =
   if len != 0 && valid_xy s (x, y) then begin
-    data.(x).(y) <- Wall;
+    add_wall data (x, y);
     draw_walls data s (dir_x, dir_y) (x + dir_x, y + dir_y) (len - 1)
   end
   else (x - dir_x, y - dir_y)
 
-(* Takes in an empty map data and sets up human starting zone in the center *)
+let dist (x_0, y_0) (x_1, y_1) =
+  let xDiff = x_1 - x_0 in
+  let yDiff = y_1 - y_0 in
+  (xDiff * xDiff) + (yDiff * yDiff)
+
+let update_wb s =
+  let mid = s / 2 in
+  (* check whether [p] is in wall_boundary *)
+  let in_wb (x, y) =
+    let req1 = ref true in
+    let req2 = ref false in
+    for x_p = x - 2 to x + 2 do
+      for y_p = y - 2 to y + 2 do
+        let dist = dist (x, y) (x_p, y_p) in
+        (* ensure all neighbors 1 away are not in [wall_set] *)
+        (* ensure a neighbor 2 away is in [wall_set] *)
+        if dist < 4 then begin
+          if PointSet.mem (x_p, y_p) !wall_set then req1 := false
+        end
+        else if PointSet.mem (x_p, y_p) !wall_set then req2 := true
+      done
+    done;
+    !req1 && !req2
+  in
+  (* reset wall boundary *)
+  empty wall_boundary;
+  for x = mid to s - 1 do
+    for y = 0 to s - 1 do
+      if in_wb (x, y) then add (x, y) wall_boundary
+    done
+  done
+
+(* Takes in an empty map data and sets up starting zone in the center *)
 let start_map data s =
   let mid = s / 2 in
   let walls = draw_walls data s in
@@ -94,20 +109,6 @@ let start_map data s =
 
   (* generate bump *)
   let rec gen_bump (dir_x, dir_y) (x, y) (l1, l2) =
-    let p_add =
-      wb_edit Add data s (dir_x, dir_y)
-        (x + (2 * (dir_x - dir_y)), y + (2 * (dir_x + dir_y)))
-        l1
-    in
-    let p_add = wb_edit Add data s (dir_y, -dir_x) p_add (l2 + 4) in
-    wb_edit Add data s (-dir_x, -dir_y) p_add l1 |> ignore;
-    let p_remove =
-      wb_edit Remove data s (dir_x, dir_y)
-        (x + (dir_x - dir_y), y + (dir_x + dir_y))
-        l1
-    in
-    let p_remove = wb_edit Remove data s (dir_y, -dir_x) p_remove (l2 + 2) in
-    wb_edit Remove data s (-dir_x, -dir_y) p_remove l1 |> ignore;
     let p = walls (dir_x, dir_y) (x, y) l1 in
     let p = walls (dir_y, -dir_x) p l2 in
     let p_x, p_y = walls (-dir_x, -dir_y) p l1 in
@@ -117,13 +118,7 @@ let start_map data s =
     let p_skip_x, p_skip_y = p_skip in
     if prob > 0.7 && (dir_y * p_skip_x) + (-dir_x * p_skip_y) + thres <= s - 1
     then gen_bump (dir_x, dir_y) p_skip (3 + int 3, 3 + int 3)
-    else
-      let len = 4 + int 3 in
-      wb_edit Add data s (dir_y, -dir_x)
-        (p_skip_x + (2 * dir_x), p_skip_y + (2 * dir_y))
-        len
-      |> ignore;
-      walls (dir_y, -dir_x) p_skip len
+    else walls (dir_y, -dir_x) p_skip (4 + int 3)
   in
 
   (* generate boundary *)
@@ -133,7 +128,7 @@ let start_map data s =
     let thres = 5 in
     if x_i > x_f || y_i > y_f then ()
     else if
-      (float 1. > if dir_x = 1 then 0.9 else 0.95)
+      (float 1. > if dir_x = 1 then 0.8 else 0.9)
       && x_i >= dir_x * (mid + thres)
       && y_i >= dir_y * thres
       (* thres to not generate bumps near corners of boundary *)
@@ -143,18 +138,10 @@ let start_map data s =
       let p = gen_bump (-dir_y, dir_x) (x_i, y_i) (l1, l2) in
       gen_boundary (dir_x, dir_y) p (x_f, y_f)
     else begin
-      data.(x_i).(y_i) <- Wall;
-      let p_x, p_y = (x_i - (2 * dir_y), y_i + (2 * dir_x)) in
-      if min p_x p_y >= 2 && max p_x p_y <= s - 3 then wb_add (p_x, p_y);
+      add_wall data (x_i, y_i);
       gen_boundary (dir_x, dir_y) (x_i + dir_x, y_i + dir_y) (x_f, y_f)
     end
   in
-
-  (* populate rest of wall boundary *)
-  let wb_edit_add = wb_edit Add data s in
-  let p = wb_edit_add (0, 1) (mid, 3) (mid - 5) in
-  let p = wb_edit_add (1, 0) p 5 in
-  wb_edit_add (0, 1) p 7 |> ignore;
 
   (* drawing the boundary *)
 
@@ -165,7 +152,7 @@ let start_map data s =
     for x = mid to s - 1 do
       for y = mid + 3 to s - 1 do
         data.(x).(y) <- data.(x).(s - 1 - y);
-        if PointSet.mem (x, s - 1 - y) !wb then wb_add (x, y)
+        if data.(x).(y) = Wall then add (x, y) wall_set
       done
     done
   in
@@ -174,37 +161,44 @@ let start_map data s =
   gen_boundary (0, 1) (s - 1, 0) (s - 1, s - 1);
   ()
 
-let test_wb data = PointSet.iter (fun (x, y) -> data.(x).(y) <- Wall) !wb
-
-type shape_type =
-  | I (* I shape *)
-  | L (* L shape *)
-  | T (* T shape *)
-  | C (* C shape *)
-  | E (* E shape *)
-  | H (* H shape *)
-  | U (* U shape *)
+let test_wb data =
+  PointSet.iter (fun (x, y) -> data.(x).(y) <- Wall) !wall_boundary
 
 (* Takes in a starting map and populates it with tetris blocks representing
    paths *)
 let populate_map data s =
-  let shape_types = [ I; L; T; C; E; H ] in
-  let shape_types = Array.of_list shape_types in
-  let boundary_walk (x, y) len = (x, y) in
+  let boundary_walk len =
+    let wb_list = PointSet.elements !wall_boundary in
+    let elt = List.nth wb_list (int (List.length wb_list)) in
+    let dist = dist elt in
+    (* sort wb in order or increasing distance away from random element [elt] *)
+    let wall_points =
+      List.sort
+        (fun (x_0, y_0) (x_1, y_1) -> dist (x_0, y_0) - dist (x_1, y_1))
+        wb_list
+    in
+    let rec add_n_walls wall_points len =
+      if len == 0 then ()
+      else
+        match wall_points with
+        | h :: t ->
+            add_wall data h;
+            add_n_walls t (len - 1)
+        | [] -> ()
+    in
+    add_n_walls wall_points len;
+    update_wb s
+  in
   (* generates a tetris-like wall with most points in [wb] starting at (x,y) a
      point in [wb] *)
-  let rec gen_pieces (x, y) =
-    if PointSet.is_empty !wb then ();
-    (* TODO: change 0 to random index *)
-    (* TODO: see if you can implement specific shapes *)
-    let st = Array.get shape_types 0 in
-    let len = 2 + int 3 in
-    match st with
-    | _ ->
-        let p = boundary_walk (x, y) len in
-        gen_pieces p
+  let rec gen_pieces () =
+    if PointSet.is_empty !wall_boundary then ()
+    else
+      let len = 3 + int 10 in
+      boundary_walk len;
+      gen_pieces ()
   in
-  (* gen_pieces (PointSet.choose !wb); *)
+  gen_pieces ();
   (* adding initial items to map *)
   for x = 0 to s - 1 do
     for y = 0 to s - 1 do
@@ -224,13 +218,14 @@ let mirror_left_y data s =
   done
 
 (* Creates a pacmap with random odd size *)
-(* TODO @Vincent: update gen_map function *)
 let gen_map (seed : int) =
   init seed;
   let s = (int 20 * 2) + 31 in
   let data = Array.make_matrix s s (Floor Empty) in
-  wb := PointSet.empty;
+  empty wall_set;
+  empty wall_boundary;
   start_map data s;
+  update_wb s;
   populate_map data s;
   test_wb data;
   mirror_left_y data s;
@@ -257,17 +252,13 @@ let draw_wall map sdl_area (x, y) (shift_x, shift_y) (w, h) =
   draw_circle sdl_area grey
     ((w_2 + h_2) / 4) (* take average *)
     (x_0 + w_2, y_0 + h_2);
-  let is_wall = function
-    | Wall -> true
-    | Floor _ -> false
-  in
   let { data; size; _ } = map in
   let x_max, y_max = size in
   let top, right, bottom, left =
-    ( y != 0 && is_wall data.(x).(y - 1),
-      x < x_max - 1 && is_wall data.(x + 1).(y),
-      y < y_max - 1 && is_wall data.(x).(y + 1),
-      x != 0 && is_wall data.(x - 1).(y) )
+    ( y != 0 && data.(x).(y - 1) = Wall,
+      x < x_max - 1 && data.(x + 1).(y) = Wall,
+      y < y_max - 1 && data.(x).(y + 1) = Wall,
+      x != 0 && data.(x - 1).(y) = Wall )
   in
   let w_4, h_4 = (w / 4, h / 4) in
   let w_2, h_2 = (w_2 + 1, h_2 + 1) in
