@@ -6,8 +6,6 @@
 (** The abstract type of values representing a camel *)
 type t
 
-val get_x : t -> int
-val get_y : t -> int
 val get_pos : t -> int * int
 
 (** [move t m p] is the camel's state containing its location after attempting
