@@ -16,9 +16,14 @@ play:
 
 clean:
 	dune clean
+	rm -f pac_camel.zip
 
 doc:
 	dune build @doc
 
 opendoc: doc
 	@bash opendoc.sh
+
+zip:
+	rm -f pac_camel.zip
+	zip -r pac_camel.zip . -x@exclude.lst

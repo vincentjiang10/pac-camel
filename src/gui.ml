@@ -68,8 +68,9 @@ let reset_camel r = go (render_copy r (texture r))
 
 let reset_map (seed : int) =
   (* reset canvas *)
-  let _ = Sdl_area.clear sdl_area in
-  draw_map sdl_area (gen_map seed)
+  Sdl_area.clear sdl_area;
+  map := gen_map seed;
+  draw_map sdl_area !map
 
 (* sets up the game *)
 let reset_game seed = reset_map seed
@@ -85,14 +86,13 @@ let make_board () =
   (* TODO @GUI: fix error where initial click does not generate correct map *)
   (* action to be connected to start button *)
   let start_action _ _ _ =
-    reset_game (int 10000);
+    (* reset_game (int 10000); *)
     L.set_rooms layout [ start_button_l; canvas_l ]
     (* this line replace current layout with an empty list, add widgets (to be
        drawn after start) in this list e.g. map, camel, human etc. *)
   in
   (* connect action to button. Triggered when button is pushed*)
   let c = W.connect start_button_w start_button_w start_action T.buttons_down in
-
   (* set up board *)
   of_layout ~connections:[ c ] layout
 
@@ -102,7 +102,8 @@ let main () =
   go (Sdl.init Sdl.Init.video);
   let win =
     go
-      (Sdl.create_window ~w:800 ~h:800 "Pac-Camel Game" Sdl.Window.(popup_menu))
+      (Sdl.create_window ~w:800 ~h:800 "Pac-Camel Game"
+         Sdl.Window.(shown + popup_menu))
   in
   let renderer = go (Sdl.create_renderer win) in
   (* very important: set blend mode: *)
@@ -120,7 +121,6 @@ let main () =
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         (* show_gui := not !show_gui; *)
          print_endline "up"
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
          print_endline "right"
@@ -138,14 +138,11 @@ let main () =
      | _ -> ());
     Draw.set_color renderer bg;
     go (Sdl.render_clear renderer);
-
-    if true then begin
-      refresh_custom_windows board;
-      if
-        not (one_step true (start_fps, fps) board)
-        (* one_step returns true if fps was executed *)
-      then fps ()
-    end
+    refresh_custom_windows board;
+    if
+      not (one_step true (start_fps, fps) board)
+      (* one_step returns true if fps was executed *)
+    then fps ()
     else fps ();
     Sdl.render_present renderer;
     mainloop e
@@ -153,10 +150,11 @@ let main () =
 
   let e = Sdl.Event.create () in
   start_fps ();
-  let () = try mainloop e with e -> raise e in
+  let () = try mainloop e with _ -> exit 0 in
   Sdl.destroy_window win;
   Draw.quit ()
 
 (* TODO @GUI: add to this function, which should initialize gui widgets (be
-   prepared to take in functions that should be called based on widget events)*)
+   prepared to take in functions that should be called based on widget
+   events) *)
 let greeting = main ()

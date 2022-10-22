@@ -11,7 +11,7 @@ val get_y : t -> float
 
 (** [move t m p] is the camel's state containing its location after attempting
     to move to [p] *)
-val move : t -> Pacmap.t -> float * float -> t
+val move : t -> Pacmap.t -> float * float -> unit
 
 (** [init t s] is a camel with source image at [s] and dimensions and position
     depending on [t] *)

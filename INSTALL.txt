@@ -1,0 +1,9 @@
+DISCLAIMER: Works on MacOS only 
+
+Install Instructions: 
+ 
+1) Create an opam switch to have a clear opam so it doesn't conflict with your previous work.
+2) If you do not have dune installed follow write this into the OPAM opam install -y utop odoc ounit2 qcheck bisect_ppx menhir ocaml-lsp-server 
+ocamlformat ocamlformat-rpc (make sure it's all on one line) 
+3) Run opam install bogue and wait until it is installed. 
+4) Once installed run Make build, then after the fact run Make play 
