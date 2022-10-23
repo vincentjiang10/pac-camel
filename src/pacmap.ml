@@ -40,6 +40,7 @@ module Point = struct
   let compare = compare
 end
 
+(** A [PointSet] is an unordered collection of type [Point.t]. *)
 module PointSet = Set.Make (Point)
 
 (* Wall set: a set of all points (x, y) representing a wall in pacmap *)

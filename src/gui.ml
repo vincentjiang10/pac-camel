@@ -45,18 +45,18 @@ let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
 (* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
    undesirable behavior; perhaps set a minimum window dimension *)
 let canvas = W.sdl_area ~w:500 ~h:500 ()
-let canvas_l = L.resident ~w:200 ~h:200 ~x:0 ~y:0 canvas
+let canvas_l = L.resident ~x:0 ~y:0 canvas
 
 (* reference to map *)
-let map = ref (gen_map (int 5000))
-let camel = ref (Camel.init !map "test")
+let map_ref = ref (gen_map (int 5000))
+let camel_ref = ref (Camel.init !map_ref "test")
 let sdl_area = W.get_sdl_area canvas
 
 let reset_map (seed : int) =
   (* reset canvas *)
   Sdl_area.clear sdl_area;
-  map := gen_map seed;
-  draw_map sdl_area !map
+  map_ref := gen_map seed;
+  draw_map sdl_area !map_ref
 
 (* sets up the game *)
 let reset_game seed = reset_map seed
@@ -65,7 +65,6 @@ let bg = (255, 255, 255, 255)
 let make_board () =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  (* reset_game (int 10000); -> does not render correctly *)
   (* TODO @GUI: if widgets do not work, then display a screen with instructions *)
   let layout = L.flat [ canvas_l ] in
 
@@ -107,30 +106,33 @@ let main () =
   (* let show_gui = ref true in *)
   let board = make_board () in
   make_sdl_windows ~windows:[ win ] board;
-  let start_fps, fps = Time.adaptive_fps 60 in
+  let start_fps, fps = Time.adaptive_fps 120 in
 
   let rec mainloop e =
+    let camel = !camel_ref in
+    let map = !map_ref in
+    let camel_speed = Camel.get_speed camel in
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         print_endline "up"
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-         print_endline "right"
+         Camel.move camel map (0, -camel_speed)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         print_endline "down"
+         Camel.move camel map (0, camel_speed)
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
+         Camel.move camel map (camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         print_endline "left"
+         Camel.move camel map (-camel_speed, 0)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        -> reset_game (int 10000)
      | _ -> ());
     Draw.set_color renderer bg;
     go (Sdl.render_clear renderer);
-    Draw.set_color renderer (100, 100, 20, 200);
-    let x, y = Camel.get_pos !camel in
+    Draw.set_color renderer (100, 200, 200, 255);
+    let x, y = Camel.get_pos camel in
     (* replace render_fill_rect with rendering an image of a camel *)
-    go (Sdl.render_fill_rect renderer (Some (new_rect 50 x y)));
     refresh_custom_windows board;
+    go (Sdl.render_fill_rect renderer (Some (new_rect 20 x y)));
     if
       not (one_step true (start_fps, fps) board)
       (* one_step returns true if fps was executed *)
