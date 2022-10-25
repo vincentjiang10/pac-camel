@@ -78,7 +78,7 @@ let make_board () =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
   reset_game (int 10000);
-  let layout = L.superpose [ canvas_l; Camel.get_layout !camel ] in
+  let layout = L.superpose [ canvas_l ] in
 
   (* TODO @GUI: fix widget dimensions ans positions *)
   (* TODO @GUI: fix error where initial click does not generate correct map *)
@@ -121,8 +121,6 @@ let main () =
     let t = create_texture_from_surface renderer (go camel_surface) in
     go t
   in
-  let camel_x = get_x !camel in
-  let camel_y = get_y !camel in
   let rec mainloop e =
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
