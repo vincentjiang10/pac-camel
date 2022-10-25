@@ -61,3 +61,4 @@ let init map image =
   { pos; size; src = image; speed = 20; state = { has_2x = false } }
 
 let get_src t = t.src
+let get_size t = t.size

@@ -23,5 +23,4 @@ val move : t -> Pacmap.t -> int * int -> unit
 val init : Pacmap.t -> string -> t
 
 val get_src : t -> string
-val get_layout : t -> Bogue.Layout.t
-val get_area : t -> Bogue.Sdl_area.t
+val get_size : t -> int * int
