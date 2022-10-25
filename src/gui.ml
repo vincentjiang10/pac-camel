@@ -11,6 +11,10 @@ module L = Layout
 module T = Trigger
 
 (* SETUP *)
+
+let width = 800
+let height = 800
+
 (* WIDGETS*)
 let start_title_w =
   W.label ~size:32
@@ -43,22 +47,16 @@ let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
 (* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
    undesirable behavior; perhaps set a minimum window dimension *)
 let canvas = W.sdl_area ~w:500 ~h:500 ()
-let canvas_l = L.resident ~w:200 ~h:200 ~x:0 ~y:0 canvas
+let canvas_l = L.resident ~x:0 ~y:0 canvas
 
 (* reference to map *)
-let map = ref (gen_map (int 500))
-let camel = ref (Camel.init !map "assets/images/camel-cartoon.png")
+let map_ref = ref (gen_map (int 500))
+let camel_ref = ref (Camel.init !map_ref "assets/images/camel-cartoon.png")
 
 let texture r =
   let camel_surface = Tsdl_image.Image.load "assets/images/camel-cartoon.png" in
   let t = create_texture_from_surface r (Result.get_ok camel_surface) in
   go t
-
-type tmprect = {
-  rect : Sdl.rect;
-  color : int * int * int;
-  created : int;
-}
 
 let sdl_area = W.get_sdl_area canvas
 (* let reset_camel r = go (render_copy r (texture r)) *)
@@ -66,9 +64,9 @@ let sdl_area = W.get_sdl_area canvas
 let reset_map (seed : int) =
   (* reset canvas *)
   Sdl_area.clear sdl_area;
-  map := gen_map seed;
+  map_ref := gen_map seed;
   (* camel := Camel.init !map "assets/images/camel-cartoon.png"; *)
-  draw_map sdl_area !map
+  draw_map sdl_area !map_ref
 
 (* sets up the game *)
 let reset_game seed = reset_map seed
@@ -94,6 +92,11 @@ let make_board () =
   (* set up board *)
   of_layout ~connections:[ c ] layout
 
+let new_rect size x y =
+  let w = size in
+  let h = size in
+  Sdl.Rect.create ~x ~y ~w ~h
+
 let main () =
   let open Sdl in
   Sys.catch_break true;
@@ -113,7 +116,7 @@ let main () =
   (* let show_gui = ref true in *)
   let board = make_board () in
   make_sdl_windows ~windows:[ win ] board;
-  let start_fps, fps = Time.adaptive_fps 60 in
+  let start_fps, fps = Time.adaptive_fps 120 in
   let camel_texture =
     let camel_surface =
       Tsdl_image.Image.load "assets/images/camel-cartoon.png"
@@ -122,24 +125,19 @@ let main () =
     go t
   in
   let rec mainloop e =
+    let camel = !camel_ref in
+    let map = !map_ref in
+    let camel_speed = Camel.get_speed camel in
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         print_endline "up"
-     (* Camel.move !camel !map (Camel.get_x !camel, Camel.get_y !camel +. 1.); *)
-     (* Sdl_area.set_texture (get_area !camel) (texture renderer) *)
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-         print_endline "right"
-     (* Camel.move !camel !map (Camel.get_x !camel +. 1., Camel.get_y !camel) *)
+         Camel.move camel map (0, -camel_speed)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         print_endline "down"
-     (* Camel.move !camel !map (camel_x +. 20., camel_y +. 20.); *)
-     (* Camel.move !camel !map (20., 20.); *)
-     (* Sdl_area.set_texture (get_area !camel) camel_texture *)
-     (* Result.get_ok (render_copy renderer (texture renderer)) *)
+         Camel.move camel map (0, camel_speed)
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
+         Camel.move camel map (camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         print_endline "left"
-     (* Camel.move !camel !map (Camel.get_x !camel -. 1., Camel.get_y !camel) *)
+         Camel.move camel map (-camel_speed, 0)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
@@ -152,7 +150,11 @@ let main () =
     Draw.set_color renderer bg;
 
     go (Sdl.render_clear renderer);
+    Draw.set_color renderer (100, 200, 200, 255);
+    let x, y = Camel.get_pos camel in
+    (* replace render_fill_rect with rendering an image of a camel *)
     refresh_custom_windows board;
+    go (Sdl.render_fill_rect renderer (Some (new_rect 20 x y)));
     if
       not (one_step true (start_fps, fps) board)
       (* one_step returns true if fps was executed *)

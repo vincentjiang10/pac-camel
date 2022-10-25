@@ -11,7 +11,7 @@ type t
 val valid_move : t -> int * int -> bool
 
 (** [start_pos t] is the starting point of the camel in pacmap [t] *)
-val start_pos : t -> float * float
+val start_pos : t -> int * int
 
 (** [size t] is the size of pacmap [t] *)
 val size : t -> int * int
