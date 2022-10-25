@@ -10,14 +10,12 @@ type t
     Updates game state. *)
 val valid_move : t -> int * int -> bool
 
-(** [start_pos t] is the starting point of the camel in pacmap [t] *)
-val start_pos : t -> int * int
+(** [camel_ctx t] is the starting point and size of the camel in pacmap [t] *)
+val camel_ctx : t -> (int * int) * (int * int)
 
-(** [size t] is the size of pacmap [t] *)
-val size : t -> int * int
-
-(** [gen_map s] is a generated seeded random pacmap dependent on seed [s] *)
-val gen_map : int -> t
+(** [gen_map s a] is a generated seeded random pacmap dependent on seed [s] and
+    sdl_area [a]*)
+val gen_map : int -> Bogue.Sdl_area.t -> t
 
 (** [add_item t] adds a random item to map t *)
 val add_item : t -> unit
