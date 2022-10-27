@@ -138,6 +138,7 @@ let main () =
   make_sdl_windows ~windows:[ win ] board;
   let start_fps, fps = Time.adaptive_fps 120 in
 
+  (* TODO: add trailing effect behind camel (can be an effect )*)
   let rec mainloop e =
     let camel = !camel_ref in
     let map = !map_ref in
