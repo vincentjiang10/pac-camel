@@ -8,17 +8,32 @@ type t = {
 
 let period t = t.period
 let probability t = t.probabilty
+let src t = t.src
 let effect t = t.effect
 let animate t = t.animate
 
-(* TODO: (optional) a path predictor item that predicts how each of the humans
-   might reach the camel? *)
+(* Power-up creation *)
 
-(* Power-up options: 
- *  - doubler coin point earn rate
- *  - power-up to show trajectory of ghosts (in color of each ghost)
- *  - trails or places bomb that stuns ghosts for a few seconds
- *  - phase through walls
- *  - 2x speed
- *  - fruit (scares away ghosts)
- *)
+(* Doubles the value of coins earned *)
+let coinsItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
+
+(* Doubles speed *)
+let speedItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
+
+(* Show trajectory of humans (in their respective colors) *)
+let trajectoryItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
+
+(* Trails or places bomb/quicksand that stuns ghosts for a few seconds *)
+let sandItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
+
+(* Phase through walls *)
+let phaseItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
+
+(* Cactus (scares away humans) *)
+let cactusItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }

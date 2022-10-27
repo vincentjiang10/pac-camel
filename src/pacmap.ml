@@ -1,4 +1,5 @@
 open Random
+open Item
 
 (* NOTE: the drawing of items will not be on sdl_area but on the window
    renderer *)
@@ -200,11 +201,11 @@ let populate_map data s =
           (fun (x_0, y_0) (x_1, y_1) -> dist (x_0, y_0) - dist (x_1, y_1))
           wb_list
       in
-      let len = 3 + int 5 in
+      let len = 2 + (s / 20) + int 6 in
       add_n_walls wall_points len
     in
     (* generate more walls to improve map generation efficiency *)
-    for i = 1 to 10 do
+    for i = 1 to 5 do
       gen_wall_points ()
     done;
     update_wb s

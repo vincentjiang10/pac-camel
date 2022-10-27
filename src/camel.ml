@@ -18,9 +18,11 @@ type t = {
   src : string;
 }
 
-let get_pos t = t.pos
+let pos t = t.pos
 let update_pos t p = t.pos <- p
-let get_speed t = t.speed
+let speed t = t.speed
+let src t = t.src
+let size t = t.size
 
 (* TODO @Vincent: make sure to implement wrap around *)
 let move t map (dir_x, dir_y) =
@@ -32,6 +34,3 @@ let move t map (dir_x, dir_y) =
 let init map image =
   let pos, size = camel_ctx map in
   { pos; size; src = image; speed = fst size; state = { has_2x = false } }
-
-let get_src t = t.src
-let get_size t = t.size

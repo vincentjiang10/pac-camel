@@ -56,7 +56,7 @@ let map_ref = ref (gen_map (int 500) sdl_area)
 let camel_ref = ref (Camel.init !map_ref "assets/images/camel-cartoon.png")
 
 let camel_widget =
-  let size = Camel.get_size !camel_ref in
+  let size = Camel.size !camel_ref in
   let width = fst size in
   let height = snd size in
   ref (W.sdl_area ~w:width ~h:height ())
@@ -64,17 +64,17 @@ let camel_widget =
 let camel_area = ref (W.get_sdl_area !camel_widget)
 
 let camel_l =
-  let pos = Camel.get_pos !camel_ref in
+  let pos = Camel.pos !camel_ref in
   let x_pos = fst pos in
   let y_pos = snd pos in
   ref (L.resident ~x:x_pos ~y:y_pos !camel_widget)
 
 (* let reset_camel () = camel_ref := Camel.init !map_ref
-   "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.get_size
+   "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.size
    !camel_ref in let width = fst size in let height = snd size in W.sdl_area
    ?w:width ?h:height ()); camel_area := W.get_sdl_area !camel_widget; camel_l
-   := let pos = get_pos !camel_ref in let x_pos = fst pos in let y_pos = snd pos
-   in L.resident ~x:x_pos ~y:y_pos !camel_widget *)
+   := let pos = pos !camel_ref in let x_pos = fst pos in let y_pos = snd pos in
+   L.resident ~x:x_pos ~y:y_pos !camel_widget *)
 
 let reset_map (seed : int) =
   (* reset canvas *)
@@ -119,9 +119,7 @@ let main () =
 
   let renderer = go (Sdl.create_renderer win) in
   let camel_texture =
-    let camel_surface =
-      Tsdl_image.Image.load "assets/images/camel-cartoon.png"
-    in
+    let camel_surface = Tsdl_image.Image.load (Camel.src !camel_ref) in
     let t = create_texture_from_surface renderer (go camel_surface) in
     go t
   in
@@ -142,7 +140,7 @@ let main () =
   let rec mainloop e =
     let camel = !camel_ref in
     let map = !map_ref in
-    let camel_speed = Camel.get_speed camel in
+    let camel_speed = Camel.speed camel in
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
@@ -164,8 +162,8 @@ let main () =
 
     go (Sdl.render_clear renderer);
     Draw.set_color renderer (100, 200, 200, 255);
-    let x, y = Camel.get_pos camel in
-    let w, h = Camel.get_size camel in
+    let x, y = Camel.pos camel in
+    let w, h = Camel.size camel in
     (* replace render_fill_rect with rendering an image of a camel *)
     refresh_custom_windows board;
 
