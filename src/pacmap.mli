@@ -6,19 +6,16 @@
 (** The abstract type of values representing pacmap *)
 type t
 
-(** [valid move t p] is true if moving to point [p] in pacmap [t] is valid.
-    Updates game state. *)
-val valid_move : t -> int * int -> bool
+(** [find_move t p1 p2] is the updated point of attempting to move to point [p2]
+    from point [p1] in pacmap [t]. Updates game state. *)
+val find_move : t -> int * int -> int * int -> int * int
 
-(** [start_pos t] is the starting point of the camel in pacmap [t] *)
-val start_pos : t -> int * int
+(** [camel_ctx t] is the starting point and size of the camel in pacmap [t] *)
+val camel_ctx : t -> (int * int) * (int * int)
 
-(** [size t] is the size of pacmap [t] *)
-val size : t -> int * int
-
-(** [gen_map s] is a generated seeded random pacmap dependent on seed [s]
-    Requires [t]>=0 *)
-val gen_map : int -> t
+(** [gen_map s a] is a generated seeded random pacmap dependent on seed [s] and
+    sdl_area [a] Requires [t]>=0*)
+val gen_map : int -> Bogue.Sdl_area.t -> t
 
 (** [add_item t] adds a random item to map t *)
 val add_item : t -> unit

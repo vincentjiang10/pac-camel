@@ -1,4 +1,5 @@
 open Random
+open Item
 
 (* NOTE: the drawing of items will not be on sdl_area but on the window
    renderer *)
@@ -13,26 +14,37 @@ type cell =
   | Floor of e
 
 type t = {
-  mutable data : cell array array;
+  data : cell array array;
   start : int * int;
   size : int * int;
 }
+
+let scale_x = ref 0
+let scale_y = ref 0
+let shift_x = ref 0
+let shift_y = ref 0
+
+(* Converts a point on the canvas/gameboard to a point on sdl_area *)
+let to_sdl_area (x, y) = ((x * !scale_x) + !shift_x, (y * !scale_y) + !shift_y)
+
+(* Converts a point on the sdl_area to a point on canvas/gameboard *)
+let to_canvas (x, y) = ((x - !shift_x) / !scale_x, (y - !shift_y) / !scale_y)
 
 (* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
    Empty + Update game state before clearing depending on item and
    camel_state *)
 
-(* Note: a camel should only move along the midline of each cell *)
-let valid_move map (x, y) =
-  if x < 0 || y < 0 || x >= fst map.size || y >= snd map.size then false
-  else
-    match map.data.(x).(y) with
-    | Wall -> false
-    | Floor _ -> true
+let find_move map p_from p_new =
+  let size = fst map.size in
+  let bound v = if v < 0 then v + size else if v >= size then v - size else v in
+  let x, y = to_canvas p_new in
+  let x, y = (bound x, bound y) in
+  match map.data.(x).(y) with
+  | Wall -> p_from
+  | Floor _ -> to_sdl_area (x, y)
 
 let valid_xy s (x, y) = min x y >= 0 && max x y < s
-let start_pos t = t.start
-let size t = t.size
+let camel_ctx t = (t.start, (!scale_x, !scale_y))
 
 module Point = struct
   type t = int * int
@@ -40,6 +52,7 @@ module Point = struct
   let compare = compare
 end
 
+(** A [PointSet] is an unordered collection of type [Point.t]. *)
 module PointSet = Set.Make (Point)
 
 (* Wall set: a set of all points (x, y) representing a wall in pacmap *)
@@ -57,12 +70,12 @@ let add_wall data (x, y) =
 let remove p s = s := PointSet.remove p !s
 let empty s = s := PointSet.empty
 
-(* Draw a line segment of walls of length len from (x, y) in direction dir and
+(* Add a line segment of walls of length len from (x, y) in direction dir and
    returns the end point of that segment*)
-let rec draw_walls data s (dir_x, dir_y) (x, y) len =
+let rec add_walls data s (dir_x, dir_y) (x, y) len =
   if len != 0 && valid_xy s (x, y) then begin
     add_wall data (x, y);
-    draw_walls data s (dir_x, dir_y) (x + dir_x, y + dir_y) (len - 1)
+    add_walls data s (dir_x, dir_y) (x + dir_x, y + dir_y) (len - 1)
   end
   else (x - dir_x, y - dir_y)
 
@@ -101,7 +114,7 @@ let update_wb s =
 (* Takes in an empty map data and sets up starting zone in the center *)
 let start_map data s =
   let mid = s / 2 in
-  let walls = draw_walls data s in
+  let walls = add_walls data s in
   (* starting "room" containing humans *)
   let p = walls (1, 0) (mid + 1, mid - 1) 2 in
   let p = walls (0, 1) p 3 in
@@ -167,16 +180,8 @@ let test_wb data =
 (* Takes in a starting map and populates it with tetris blocks representing
    paths *)
 let populate_map data s =
-  let boundary_walk len =
+  let boundary_walk () =
     let wb_list = PointSet.elements !wall_boundary in
-    let elt = List.nth wb_list (int (List.length wb_list)) in
-    let dist = dist elt in
-    (* sort wb in order or increasing distance away from random element [elt] *)
-    let wall_points =
-      List.sort
-        (fun (x_0, y_0) (x_1, y_1) -> dist (x_0, y_0) - dist (x_1, y_1))
-        wb_list
-    in
     let rec add_n_walls wall_points len =
       if len == 0 then ()
       else
@@ -186,17 +191,33 @@ let populate_map data s =
             add_n_walls t (len - 1)
         | [] -> ()
     in
-    add_n_walls wall_points len;
+    let gen_wall_points () =
+      let elt = List.nth wb_list (int (List.length wb_list)) in
+      let dist = dist elt in
+      (* sort wb in order or increasing distance away from random element
+         [elt] *)
+      let wall_points =
+        List.sort
+          (fun (x_0, y_0) (x_1, y_1) -> dist (x_0, y_0) - dist (x_1, y_1))
+          wb_list
+      in
+      let len = 2 + (s / 20) + int 6 in
+      add_n_walls wall_points len
+    in
+    (* generate more walls to improve map generation efficiency *)
+    for i = 1 to 5 do
+      gen_wall_points ()
+    done;
     update_wb s
   in
   (* generates a tetris-like wall with most points in [wb] starting at (x,y) a
      point in [wb] *)
   let rec gen_pieces () =
     if PointSet.is_empty !wall_boundary then ()
-    else
-      let len = 3 + int 10 in
-      boundary_walk len;
+    else begin
+      boundary_walk ();
       gen_pieces ()
+    end
   in
   gen_pieces ();
   (* adding initial items to map *)
@@ -218,7 +239,7 @@ let mirror_left_y data s =
   done
 
 (* Creates a pacmap with random odd size *)
-let gen_map (seed : int) =
+let gen_map (seed : int) sdl_area =
   init seed;
   let s = (int 20 * 2) + 31 in
   let data = Array.make_matrix s s (Floor Empty) in
@@ -229,7 +250,13 @@ let gen_map (seed : int) =
   populate_map data s;
   test_wb data;
   mirror_left_y data s;
-  { data; start = (0, 0); size = (s, s) }
+  let w_to, h_to = Bogue.Sdl_area.drawing_size sdl_area in
+  scale_x := w_to / s;
+  scale_y := h_to / s;
+  shift_x := w_to mod s / 2;
+  shift_y := h_to mod s / 2;
+  let start = to_sdl_area (1, 1) in
+  { data; start; size = (s, s) }
 
 (* mutate map data to include a random item at a Floor cell *)
 let add_item map = ()
@@ -244,11 +271,12 @@ let draw_circle sdl_area c r loc =
 let draw_rect sdl_area c w h loc =
   Bogue.Sdl_area.fill_rectangle sdl_area ~color:c ~w ~h loc
 
-let draw_wall map sdl_area (x, y) (shift_x, shift_y) (w, h) =
+let draw_wall map sdl_area (x, y) =
   let module D = Bogue.Draw in
+  let w, h = (!scale_x, !scale_y) in
   let grey = color_of_rgb D.dark_grey 255 in
   let w_2, h_2 = (w / 2, h / 2) in
-  let x_0, y_0 = ((x * w) + shift_x, (y * h) + shift_y) in
+  let x_0, y_0 = ((x * w) + !shift_x, (y * h) + !shift_y) in
   draw_circle sdl_area grey
     ((w_2 + h_2) / 4) (* take average *)
     (x_0 + w_2, y_0 + h_2);
@@ -268,21 +296,19 @@ let draw_wall map sdl_area (x, y) (shift_x, shift_y) (w, h) =
   if bottom then draw_grey_rect w_2 h_2 (x_0 + w_4, y_0 + h_2);
   if left then draw_grey_rect w_2 h_2 (x_0, y_0 + h_4)
 
-let draw_floor c sdl_area (x, y) (shift_x, shift_y) (w, h) =
+let draw_floor c sdl_area (x, y) =
   let module D = Bogue.Draw in
+  let w, h = (!scale_x, !scale_y) in
   (* draw background *)
-  draw_rect sdl_area c w h ((x * w) + shift_x, (y * h) + shift_y);
+  draw_rect sdl_area c w h ((x * w) + !shift_x, (y * h) + !shift_y);
   (* draw boundary *)
   draw_rect sdl_area
     (color_of_rgb D.dark_grey 100)
     (w + 2) (h + 2)
-    ((x * w) + shift_x - 1, (y * h) + shift_y - 1)
+    ((x * w) + !shift_x - 1, (y * h) + !shift_y - 1)
 
-let draw_map sdl_area (map : t) =
-  let w_to, h_to = Bogue.Sdl_area.drawing_size sdl_area in
+let draw_map sdl_area map =
   let w_from, h_from = map.size in
-  let scale = (w_to / w_from, h_to / h_from) in
-  let shift = (w_to mod w_from / 2, h_to mod h_from / 2) in
   let c = (int 255, int 255, int 255, 80) in
   for x = 0 to w_from - 1 do
     for y = 0 to h_from - 1 do
@@ -290,8 +316,8 @@ let draw_map sdl_area (map : t) =
       match map.data.(x).(y) with
       | Wall ->
           (* swap drawing order to disable color layering *)
-          draw_wall map sdl_area p shift scale;
-          draw_floor c sdl_area p shift scale
-      | Floor _ -> draw_floor c sdl_area p shift scale
+          draw_wall map sdl_area p;
+          draw_floor c sdl_area p
+      | Floor _ -> draw_floor c sdl_area p
     done
   done

@@ -4,6 +4,7 @@ open Pacmap
 open Tsdl
 open Utils
 open Random
+open Sdl
 module W = Widget
 module L = Layout
 module T = Trigger
@@ -44,19 +45,43 @@ let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
 
 (* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
    undesirable behavior; perhaps set a minimum window dimension *)
-let canvas = W.sdl_area ~w:500 ~h:500 ()
-let canvas_l = L.resident ~w:200 ~h:200 ~x:0 ~y:0 canvas
+let canvas = W.sdl_area ~w:800 ~h:800 ()
+let canvas_l = L.resident ~x:0 ~y:0 canvas
+let sdl_area = W.get_sdl_area canvas
 
 (* reference to map *)
-let map = ref (gen_map (int 5000))
-let camel = ref (Camel.init !map "test")
-let sdl_area = W.get_sdl_area canvas
+let map_ref = ref (gen_map (int 500) sdl_area)
+
+(* reference to camel *)
+let camel_ref = ref (Camel.init !map_ref "assets/images/camel-cartoon.png")
+
+let camel_widget =
+  let size = Camel.size !camel_ref in
+  let width = fst size in
+  let height = snd size in
+  ref (W.sdl_area ~w:width ~h:height ())
+
+let camel_area = ref (W.get_sdl_area !camel_widget)
+
+let camel_l =
+  let pos = Camel.pos !camel_ref in
+  let x_pos = fst pos in
+  let y_pos = snd pos in
+  ref (L.resident ~x:x_pos ~y:y_pos !camel_widget)
+
+(* let reset_camel () = camel_ref := Camel.init !map_ref
+   "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.size
+   !camel_ref in let width = fst size in let height = snd size in W.sdl_area
+   ?w:width ?h:height ()); camel_area := W.get_sdl_area !camel_widget; camel_l
+   := let pos = pos !camel_ref in let x_pos = fst pos in let y_pos = snd pos in
+   L.resident ~x:x_pos ~y:y_pos !camel_widget *)
 
 let reset_map (seed : int) =
   (* reset canvas *)
   Sdl_area.clear sdl_area;
-  map := gen_map seed;
-  draw_map sdl_area !map
+  map_ref := gen_map seed sdl_area;
+  camel_ref := Camel.init !map_ref "assets/images/camel-cartoon.png";
+  draw_map sdl_area !map_ref
 
 (* sets up the game *)
 let reset_game seed = reset_map seed
@@ -65,9 +90,7 @@ let bg = (255, 255, 255, 255)
 let make_board () =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  (* reset_game (int 10000); -> does not render correctly *)
-  (* TODO @GUI: if widgets do not work, then display a screen with instructions *)
-  let layout = L.flat [ canvas_l ] in
+  let layout = L.superpose [ canvas_l; !camel_l ] in
 
   (* TODO @GUI: fix widget dimensions ans positions *)
   (* TODO @GUI: fix error where initial click does not generate correct map *)
@@ -79,14 +102,10 @@ let make_board () =
        drawn after start) in this list e.g. map, camel, human etc. *)
   in
   (* connect action to button. Triggered when button is pushed*)
-  let c = W.connect start_button_w start_button_w start_action T.buttons_down in
+  (* let c = W.connect start_button_w start_button_w start_action T.buttons_down
+     in *)
   (* set up board *)
-  of_layout ~connections:[ c ] layout
-
-let new_rect size x y =
-  let w = size in
-  let h = size in
-  Sdl.Rect.create ~x ~y ~w ~h
+  of_layout layout
 
 let main () =
   let open Sdl in
@@ -97,40 +116,62 @@ let main () =
       (Sdl.create_window ~w:800 ~h:800 "Pac-Camel Game"
          Sdl.Window.(shown + popup_menu))
   in
+
   let renderer = go (Sdl.create_renderer win) in
+  let camel_texture =
+    let camel_surface = Tsdl_image.Image.load (Camel.src !camel_ref) in
+    let t = create_texture_from_surface renderer (go camel_surface) in
+    go t
+  in
+
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
+
+  go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none);
   Draw.set_color renderer bg;
   go (Sdl.render_clear renderer);
-  self_init ();
 
   (* let show_gui = ref true in *)
   let board = make_board () in
   make_sdl_windows ~windows:[ win ] board;
-  let start_fps, fps = Time.adaptive_fps 60 in
+  let start_fps, fps = Time.adaptive_fps 120 in
 
+  (* TODO: add trailing effect behind camel (can be an effect )*)
   let rec mainloop e =
+    let camel = !camel_ref in
+    let map = !map_ref in
+    let camel_speed = Camel.speed camel in
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         print_endline "up"
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-         print_endline "right"
+         Camel.move camel map (0, -camel_speed)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         print_endline "down"
+         Camel.move camel map (0, camel_speed)
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
+         Camel.move camel map (camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         print_endline "left"
+         Camel.move camel map (-camel_speed, 0)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
-       -> reset_game (int 10000)
+       ->
+         print_endline "restart";
+         reset_game (int 10000) (* go (render_copy renderer camel_texture) *)
      | _ -> ());
+
     Draw.set_color renderer bg;
+
     go (Sdl.render_clear renderer);
-    Draw.set_color renderer (100, 100, 20, 200);
-    let x, y = Camel.get_pos !camel in
+    Draw.set_color renderer (100, 200, 200, 255);
+    let x, y = Camel.pos camel in
+    let w, h = Camel.size camel in
     (* replace render_fill_rect with rendering an image of a camel *)
-    go (Sdl.render_fill_rect renderer (Some (new_rect 50 x y)));
     refresh_custom_windows board;
+
+    L.setx !camel_l x;
+    L.sety !camel_l y;
+    Sdl_area.set_texture !camel_area camel_texture;
+    go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)));
+
     if
       not (one_step true (start_fps, fps) board)
       (* one_step returns true if fps was executed *)

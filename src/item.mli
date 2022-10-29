@@ -8,7 +8,15 @@ type t
 
 val probability : t -> float
 val period : t -> int
+val src : t -> string
 val effect : t -> unit
 val animate : t -> unit
 (* TODO (once main graphics loop is implemented): implement an animation
    function for all items *)
+
+val coinsItem : unit -> t
+val speedItem : unit -> t
+val trajectoryItem : unit -> t
+val sandItem : unit -> t
+val phaseItem : unit -> t
+val cactusItem : unit -> t
