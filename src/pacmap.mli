@@ -16,7 +16,8 @@ val start_pos : t -> int * int
 (** [size t] is the size of pacmap [t] *)
 val size : t -> int * int
 
-(** [gen_map s] is a generated seeded random pacmap dependent on seed [s] *)
+(** [gen_map s] is a generated seeded random pacmap dependent on seed [s]
+    Requires [t]>=0 *)
 val gen_map : int -> t
 
 (** [add_item t] adds a random item to map t *)
