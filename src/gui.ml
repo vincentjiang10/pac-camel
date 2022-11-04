@@ -53,12 +53,14 @@ let canvas_l = L.resident ~x:0 ~y:0 canvas
 let map_ref = ref (gen_map (int 500))
 let camel_ref = ref (Camel.init !map_ref "assets/images/camel-cartoon.png")
 let sdl_area = W.get_sdl_area canvas
+let greeting = W.sdl_area ~w:1000 ~h:1000 ()
+let greeting_area = W.get_sdl_area greeting
 
 let camel_widget =
   let size = Camel.get_size !camel_ref in
   let width = fst size in
   let height = snd size in
-  ref (W.sdl_area ?w:width ?h:height ())
+  ref (W.sdl_area ~w:width ~h:height ())
 
 let camel_area = ref (W.get_sdl_area !camel_widget)
 
@@ -88,28 +90,15 @@ let bg = (255, 255, 255, 255)
 
 let make_board () =
   (* set what to be drawn *)
-  (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  reset_game (int 10000);
   let layout = L.superpose [ canvas_l; !camel_l ] in
-
-  (* TODO @GUI: fix widget dimensions ans positions *)
-  (* TODO @GUI: fix error where initial click does not generate correct map *)
-  (* action to be connected to start button *)
-  let start_action _ _ _ =
-    (* reset_game (int 10000); *)
-    L.set_rooms layout [ start_button_l; canvas_l ]
-    (* this line replace current layout with an empty list, add widgets (to be
-       drawn after start) in this list e.g. map, camel, human etc. *)
-  in
-  (* connect action to button. Triggered when button is pushed*)
-  let c = W.connect start_button_w start_button_w start_action T.buttons_down in
-  (* set up board *)
   of_layout layout
 
 let new_rect size x y =
   let w = size in
   let h = size in
   Sdl.Rect.create ~x ~y ~w ~h
+
+let game_start = ref false
 
 let main () =
   let open Sdl in
@@ -122,17 +111,24 @@ let main () =
   in
 
   let renderer = go (Sdl.create_renderer win) in
+
+  let greeting_texture =
+    let greeting_surface = Tsdl_image.Image.load "assets/images/greeting.png" in
+    let t1 = create_texture_from_surface renderer (go greeting_surface) in
+    go t1
+  in
+
   let camel_texture =
     let camel_surface =
       Tsdl_image.Image.load "assets/images/camel-cartoon.png"
     in
-    let t = create_texture_from_surface renderer (go camel_surface) in
-    go t
+    let t2 = create_texture_from_surface renderer (go camel_surface) in
+    go t2
   in
 
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
-
+  go (Sdl.set_texture_blend_mode greeting_texture Sdl.Blend.mode_none);
   go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none);
   Draw.set_color renderer bg;
   go (Sdl.render_clear renderer);
@@ -143,7 +139,6 @@ let main () =
   make_sdl_windows ~windows:[ win ] board;
   let start_fps, fps = Time.adaptive_fps 120 in
 
-  (* Sdl_area.set_texture !camel_area camel_texture; *)
   let rec mainloop e =
     let camel = !camel_ref in
     let map = !map_ref in
@@ -158,10 +153,14 @@ let main () =
          Camel.move camel map (camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
          Camel.move camel map (-camel_speed, 0)
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
+         print_endline "start";
+         game_start := true (* Sdl_area.set_texture sdl_area greeting_texture *)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
          print_endline "restart";
+         Sdl_area.clear sdl_area;
          reset_game (int 10000) (* go (render_copy renderer camel_texture) *)
      | _ -> ());
 
@@ -175,7 +174,11 @@ let main () =
 
     L.setx !camel_l x;
     L.sety !camel_l y;
+
     Sdl_area.set_texture !camel_area camel_texture;
+
+    if !game_start = false then Sdl_area.set_texture sdl_area greeting_texture
+    else ();
 
     (* L.set_show camel_l true; *)
 
@@ -192,9 +195,10 @@ let main () =
 
   let e = Sdl.Event.create () in
   start_fps ();
-  let () = try mainloop e with _ -> exit 0 in
-  Sdl.destroy_window win;
-  Draw.quit ()
+  mainloop e
+  (*TODO: uncomment*)
+(* let () = try mainloop e with _ -> exit 0 in Sdl.destroy_window win; Draw.quit
+   () *)
 
 (* TODO @GUI: add to this function, which should initialize gui widgets (be
    prepared to take in functions that should be called based on widget
