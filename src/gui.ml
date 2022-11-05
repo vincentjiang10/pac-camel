@@ -145,19 +145,19 @@ let main () =
     let x, y = Camel.get_pos camel in
     let w, h = Camel.get_size camel in
 
-    (* replace render_fill_rect with rendering an image of a camel *)
     refresh_custom_windows board;
-    go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)));
 
     if
       not (one_step true (start_fps, fps) board)
       (* one_step returns true if fps was executed *)
     then fps ()
     else fps ();
+
     go
       (Sdl.render_copy
          ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
          renderer camel_texture);
+
     Sdl.render_present renderer;
     mainloop e
   in
