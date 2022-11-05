@@ -23,4 +23,6 @@ val move : t -> Pacmap.t -> int * int -> unit
 val init : Pacmap.t -> string -> t
 
 val get_src : t -> string
+
+(** [get_size t] is the size of the camel in int*int*)
 val get_size : t -> int * int

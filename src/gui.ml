@@ -55,27 +55,6 @@ let map_ref = ref (gen_map (int 500) sdl_area)
 (* reference to camel *)
 let camel_ref = ref (Camel.init !map_ref "assets/images/camel-cartoon.png")
 
-let camel_widget =
-  let size = Camel.get_size !camel_ref in
-  let width = fst size in
-  let height = snd size in
-  ref (W.sdl_area ~w:width ~h:height ())
-
-let camel_area = ref (W.get_sdl_area !camel_widget)
-
-let camel_l =
-  let pos = Camel.get_pos !camel_ref in
-  let x_pos = fst pos in
-  let y_pos = snd pos in
-  ref (L.resident ~x:x_pos ~y:y_pos !camel_widget)
-
-(* let reset_camel () = camel_ref := Camel.init !map_ref
-   "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.get_size
-   !camel_ref in let width = fst size in let height = snd size in W.sdl_area
-   ?w:width ?h:height ()); camel_area := W.get_sdl_area !camel_widget; camel_l
-   := let pos = get_pos !camel_ref in let x_pos = fst pos in let y_pos = snd pos
-   in L.resident ~x:x_pos ~y:y_pos !camel_widget *)
-
 let reset_map (seed : int) =
   (* reset canvas *)
   Sdl_area.clear sdl_area;
@@ -90,7 +69,7 @@ let bg = (255, 255, 255, 255)
 let make_board () =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  let layout = L.superpose [ canvas_l; !camel_l ] in
+  let layout = L.superpose [ canvas_l ] in
 
   (* TODO @GUI: fix widget dimensions ans positions *)
   (* TODO @GUI: fix error where initial click does not generate correct map *)
@@ -129,7 +108,7 @@ let main () =
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
 
-  go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none);
+  (* go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none); *)
   Draw.set_color renderer bg;
   go (Sdl.render_clear renderer);
 
@@ -156,7 +135,7 @@ let main () =
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
          print_endline "restart";
-         reset_game (int 10000) (* go (render_copy renderer camel_texture) *)
+         reset_game (int 10000)
      | _ -> ());
 
     Draw.set_color renderer bg;
@@ -165,12 +144,9 @@ let main () =
     Draw.set_color renderer (100, 200, 200, 255);
     let x, y = Camel.get_pos camel in
     let w, h = Camel.get_size camel in
+
     (* replace render_fill_rect with rendering an image of a camel *)
     refresh_custom_windows board;
-
-    L.setx !camel_l x;
-    L.sety !camel_l y;
-    Sdl_area.set_texture !camel_area camel_texture;
     go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)));
 
     if
@@ -178,6 +154,10 @@ let main () =
       (* one_step returns true if fps was executed *)
     then fps ()
     else fps ();
+    go
+      (Sdl.render_copy
+         ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
+         renderer camel_texture);
     Sdl.render_present renderer;
     mainloop e
   in
