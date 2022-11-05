@@ -1,4 +1,4 @@
 (library
  (name game)
  (public_name Game)
- (libraries bogue))
+ (libraries bogue async lwt))

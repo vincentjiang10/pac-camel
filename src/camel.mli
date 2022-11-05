@@ -6,11 +6,17 @@
 (** The abstract type of values representing a camel *)
 type t
 
-(** [get_pos t] is the location of camel [t] *)
-val get_pos : t -> int * int
+(** [pos t] is the location of camel [t] *)
+val pos : t -> int * int
 
-(** [get_spped t] is the speed of camel [t] *)
-val get_speed : t -> int
+(** [speed t] is the speed of camel [t] *)
+val speed : t -> int
+
+(** [src t] is the src image of camel [t] *)
+val src : t -> string
+
+(** [size t] is the size of camel [t] *)
+val size : t -> int * int
 
 (** [move t m p] updates a camel [t]'s location after attempting to move in the
     direction and magnitude of [p] in pacmap [m]. Example: if [t]'s position is
@@ -21,6 +27,3 @@ val move : t -> Pacmap.t -> int * int -> unit
 (** [init t s] is a camel with source image at [s] and dimensions and position
     depending on [t] *)
 val init : Pacmap.t -> string -> t
-
-val get_src : t -> string
-val get_size : t -> int * int

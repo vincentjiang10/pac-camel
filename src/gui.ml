@@ -4,8 +4,10 @@ open Pacmap
 open Tsdl
 open Utils
 open Random
-open Camel
 open Sdl
+open Sys
+open Lwt
+open Async
 module W = Widget
 module L = Layout
 module T = Trigger
@@ -21,7 +23,7 @@ let start_title_w =
     ~fg:Draw.(opaque (find_color "firebrick"))
     "The Pac-Camel Game"
 
-let start_button_w = W.button "Start the Game"
+let start_button_w = W.button "Press [s] to Start the Game"
 
 (*LAYOUT*)
 
@@ -31,7 +33,7 @@ let start_button_w = W.button "Start the Game"
    or ?); these would trigger events that the buttons that they correspond to
    trigger *)
 let start_title_l = L.resident start_title_w ~y:2
-let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
+let start_button_l = L.resident ~x:30 ~y:35 ~w:250 ~h:2 start_button_w
 
 (* TODO @GUI (post-MS2): Implement more widgets 
  *  - score displayer
@@ -46,18 +48,18 @@ let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
 
 (* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
    undesirable behavior; perhaps set a minimum window dimension *)
-let canvas = W.sdl_area ~w:500 ~h:500 ()
+let canvas = W.sdl_area ~w:800 ~h:800 ()
 let canvas_l = L.resident ~x:0 ~y:0 canvas
+let sdl_area = W.get_sdl_area canvas
 
 (* reference to map *)
-let map_ref = ref (gen_map (int 500))
+let map_ref = ref (gen_map (int 500) sdl_area)
+
+(* reference to camel *)
 let camel_ref = ref (Camel.init !map_ref "assets/images/camel-cartoon.png")
-let sdl_area = W.get_sdl_area canvas
-let greeting = W.sdl_area ~w:1000 ~h:1000 ()
-let greeting_area = W.get_sdl_area greeting
 
 let camel_widget =
-  let size = Camel.get_size !camel_ref in
+  let size = Camel.size !camel_ref in
   let width = fst size in
   let height = snd size in
   ref (W.sdl_area ~w:width ~h:height ())
@@ -65,44 +67,58 @@ let camel_widget =
 let camel_area = ref (W.get_sdl_area !camel_widget)
 
 let camel_l =
-  let pos = get_pos !camel_ref in
+  let pos = Camel.pos !camel_ref in
   let x_pos = fst pos in
   let y_pos = snd pos in
   ref (L.resident ~x:x_pos ~y:y_pos !camel_widget)
 
 (* let reset_camel () = camel_ref := Camel.init !map_ref
-   "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.get_size
+   "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.size
    !camel_ref in let width = fst size in let height = snd size in W.sdl_area
    ?w:width ?h:height ()); camel_area := W.get_sdl_area !camel_widget; camel_l
-   := let pos = get_pos !camel_ref in let x_pos = fst pos in let y_pos = snd pos
-   in L.resident ~x:x_pos ~y:y_pos !camel_widget *)
+   := let pos = pos !camel_ref in let x_pos = fst pos in let y_pos = snd pos in
+   L.resident ~x:x_pos ~y:y_pos !camel_widget *)
 
 let reset_map (seed : int) =
   (* reset canvas *)
   Sdl_area.clear sdl_area;
-  map_ref := gen_map seed;
-  (* camel := Camel.init !map "assets/images/camel-cartoon.png"; *)
+  map_ref := gen_map seed sdl_area;
+  camel_ref := Camel.init !map_ref "assets/images/camel-cartoon.png";
   draw_map sdl_area !map_ref
 
 (* sets up the game *)
 let reset_game seed = reset_map seed
 let bg = (255, 255, 255, 255)
 
-let make_board () =
-  (* set what to be drawn *)
-  let layout = L.superpose [ canvas_l; !camel_l ] in
+let make_greeting_board =
+  let layout = L.superpose [ start_title_l; start_button_l ] in
   of_layout layout
 
-let new_rect size x y =
-  let w = size in
-  let h = size in
-  Sdl.Rect.create ~x ~y ~w ~h
+let make_game_board =
+  (* set what to be drawn *)
+  (* TODO @GUI: clicking on widgets do not work: try to fix *)
+  let layout = L.superpose [ canvas_l; !camel_l ] in
 
-let game_start = ref false
+  (* TODO @GUI: fix widget dimensions ans positions *)
+  (* TODO @GUI: fix error where initial click does not generate correct map *)
+  (* action to be connected to start button *)
+  let start_action _ _ _ =
+    (* reset_game (int 10000); *)
+    L.set_rooms layout [ start_button_l; canvas_l ]
+    (* this line replace current layout with an empty list, add widgets (to be
+       drawn after start) in this list e.g. map, camel, human etc. *)
+  in
+  (* connect action to button. Triggered when button is pushed*)
+  (* let c = W.connect start_button_w start_button_w start_action T.buttons_down
+     in *)
+  (* set up board *)
+  of_layout layout
+
+let board = ref make_greeting_board
 
 let main () =
   let open Sdl in
-  Sys.catch_break true;
+  catch_break true;
   go (Sdl.init Sdl.Init.video);
   let win =
     go
@@ -111,38 +127,28 @@ let main () =
   in
 
   let renderer = go (Sdl.create_renderer win) in
-
-  let greeting_texture =
-    let greeting_surface = Tsdl_image.Image.load "assets/images/greeting.png" in
-    let t1 = create_texture_from_surface renderer (go greeting_surface) in
-    go t1
-  in
-
   let camel_texture =
-    let camel_surface =
-      Tsdl_image.Image.load "assets/images/camel-cartoon.png"
-    in
-    let t2 = create_texture_from_surface renderer (go camel_surface) in
-    go t2
+    let camel_surface = Tsdl_image.Image.load (Camel.src !camel_ref) in
+    let t = create_texture_from_surface renderer (go camel_surface) in
+    go t
   in
 
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
-  go (Sdl.set_texture_blend_mode greeting_texture Sdl.Blend.mode_none);
+
   go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none);
   Draw.set_color renderer bg;
   go (Sdl.render_clear renderer);
-  self_init ();
 
   (* let show_gui = ref true in *)
-  let board = make_board () in
-  make_sdl_windows ~windows:[ win ] board;
+  make_sdl_windows ~windows:[ win ] !board;
   let start_fps, fps = Time.adaptive_fps 120 in
 
+  (* TODO: add trailing effect behind camel (can be an effect )*)
   let rec mainloop e =
     let camel = !camel_ref in
     let map = !map_ref in
-    let camel_speed = Camel.get_speed camel in
+    let camel_speed = Camel.speed camel in
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
@@ -154,13 +160,18 @@ let main () =
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
          Camel.move camel map (-camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
-         print_endline "start";
-         game_start := true (* Sdl_area.set_texture sdl_area greeting_texture *)
+         print_endline "game start";
+         (* upon (Ivar.read (Ivar.create_full (fun _ -> board :=
+            make_game_board))) (fun _ -> board := make_game_board); *)
+         let change_board () = board := make_game_board in
+         let th : Thread.t = Thread.create change_board () in
+         Thread.join th;
+         make_sdl_windows ~windows:[ win ] !board;
+         reset_game (int 1000)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
          print_endline "restart";
-         Sdl_area.clear sdl_area;
          reset_game (int 10000) (* go (render_copy renderer camel_texture) *)
      | _ -> ());
 
@@ -168,24 +179,18 @@ let main () =
 
     go (Sdl.render_clear renderer);
     Draw.set_color renderer (100, 200, 200, 255);
-    let x, y = Camel.get_pos camel in
+    let x, y = Camel.pos camel in
+    let w, h = Camel.size camel in
     (* replace render_fill_rect with rendering an image of a camel *)
-    refresh_custom_windows board;
+    refresh_custom_windows !board;
 
     L.setx !camel_l x;
     L.sety !camel_l y;
-
     Sdl_area.set_texture !camel_area camel_texture;
+    go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)));
 
-    if !game_start = false then Sdl_area.set_texture sdl_area greeting_texture
-    else ();
-
-    (* L.set_show camel_l true; *)
-
-    (* go (Sdl.render_fill_rect renderer (Some (new_rect 20 x y))); *)
-    (* go (Sdl.render_copy renderer camel_texture ?dst:(Some (new_rect 20 x y))); *)
     if
-      not (one_step true (start_fps, fps) board)
+      not (one_step true (start_fps, fps) !board)
       (* one_step returns true if fps was executed *)
     then fps ()
     else fps ();
@@ -195,12 +200,13 @@ let main () =
 
   let e = Sdl.Event.create () in
   start_fps ();
-  mainloop e
-  (*TODO: uncomment*)
-(* let () = try mainloop e with _ -> exit 0 in Sdl.destroy_window win; Draw.quit
-   () *)
+  let loop = try mainloop e with _ -> exit 0 in
+  Sdl.destroy_window win;
+  Draw.quit ()
 
 (* TODO @GUI: add to this function, which should initialize gui widgets (be
    prepared to take in functions that should be called based on widget
    events) *)
-let greeting = main ()
+let greeting =
+  main ();
+  Core.never_returns (Async.Scheduler.go ())
