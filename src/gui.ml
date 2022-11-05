@@ -98,9 +98,7 @@ let main () =
 
   let renderer = go (Sdl.create_renderer win) in
   let camel_texture =
-    let camel_surface =
-      Tsdl_image.Image.load "assets/images/camel-cartoon.png"
-    in
+    let camel_surface = Tsdl_image.Image.load (Camel.src !camel_ref) in
     let t = create_texture_from_surface renderer (go camel_surface) in
     go t
   in
@@ -117,10 +115,11 @@ let main () =
   make_sdl_windows ~windows:[ win ] board;
   let start_fps, fps = Time.adaptive_fps 120 in
 
+  (* TODO: add trailing effect behind camel (can be an effect )*)
   let rec mainloop e =
     let camel = !camel_ref in
     let map = !map_ref in
-    let camel_speed = Camel.get_speed camel in
+    let camel_speed = Camel.speed camel in
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
@@ -142,8 +141,8 @@ let main () =
 
     go (Sdl.render_clear renderer);
     Draw.set_color renderer (100, 200, 200, 255);
-    let x, y = Camel.get_pos camel in
-    let w, h = Camel.get_size camel in
+    let x, y = Camel.pos camel in
+    let w, h = Camel.size camel in
 
     refresh_custom_windows board;
 

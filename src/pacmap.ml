@@ -1,4 +1,5 @@
 open Random
+open Item
 
 (* NOTE: the drawing of items will not be on sdl_area but on the window
    renderer *)
@@ -23,27 +24,24 @@ let scale_y = ref 0
 let shift_x = ref 0
 let shift_y = ref 0
 
-(* Converts a point on the canvas/gameboard to a point on sdl_area*)
+(* Converts a point on the canvas/gameboard to a point on sdl_area *)
 let to_sdl_area (x, y) = ((x * !scale_x) + !shift_x, (y * !scale_y) + !shift_y)
 
-(* Inverse of [to_sdl_area] *)
+(* Converts a point on the sdl_area to a point on canvas/gameboard *)
 let to_canvas (x, y) = ((x - !shift_x) / !scale_x, (y - !shift_y) / !scale_y)
 
 (* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
    Empty + Update game state before clearing depending on item and
    camel_state *)
 
-(* Note: a camel should only move along the midline of each cell *)
-let valid_move map p =
-  let x, y = to_canvas p in
-  print_endline (string_of_int x);
-  print_endline (string_of_int y);
-  print_endline "";
-  if x < 0 || y < 0 || x >= fst map.size || y >= snd map.size then false
-  else
-    match map.data.(x).(y) with
-    | Wall -> false
-    | Floor _ -> true
+let find_move map p_from p_new =
+  let size = fst map.size in
+  let bound v = if v < 0 then v + size else if v >= size then v - size else v in
+  let x, y = to_canvas p_new in
+  let x, y = (bound x, bound y) in
+  match map.data.(x).(y) with
+  | Wall -> p_from
+  | Floor _ -> to_sdl_area (x, y)
 
 let valid_xy s (x, y) = min x y >= 0 && max x y < s
 let camel_ctx t = (t.start, (!scale_x, !scale_y))
@@ -182,16 +180,8 @@ let test_wb data =
 (* Takes in a starting map and populates it with tetris blocks representing
    paths *)
 let populate_map data s =
-  let boundary_walk len =
+  let boundary_walk () =
     let wb_list = PointSet.elements !wall_boundary in
-    let elt = List.nth wb_list (int (List.length wb_list)) in
-    let dist = dist elt in
-    (* sort wb in order or increasing distance away from random element [elt] *)
-    let wall_points =
-      List.sort
-        (fun (x_0, y_0) (x_1, y_1) -> dist (x_0, y_0) - dist (x_1, y_1))
-        wb_list
-    in
     let rec add_n_walls wall_points len =
       if len == 0 then ()
       else
@@ -201,17 +191,33 @@ let populate_map data s =
             add_n_walls t (len - 1)
         | [] -> ()
     in
-    add_n_walls wall_points len;
+    let gen_wall_points () =
+      let elt = List.nth wb_list (int (List.length wb_list)) in
+      let dist = dist elt in
+      (* sort wb in order or increasing distance away from random element
+         [elt] *)
+      let wall_points =
+        List.sort
+          (fun (x_0, y_0) (x_1, y_1) -> dist (x_0, y_0) - dist (x_1, y_1))
+          wb_list
+      in
+      let len = 2 + (s / 20) + int 6 in
+      add_n_walls wall_points len
+    in
+    (* generate more walls to improve map generation efficiency *)
+    for i = 1 to 5 do
+      gen_wall_points ()
+    done;
     update_wb s
   in
   (* generates a tetris-like wall with most points in [wb] starting at (x,y) a
      point in [wb] *)
   let rec gen_pieces () =
     if PointSet.is_empty !wall_boundary then ()
-    else
-      let len = 3 + int 10 in
-      boundary_walk len;
+    else begin
+      boundary_walk ();
       gen_pieces ()
+    end
   in
   gen_pieces ();
   (* adding initial items to map *)
