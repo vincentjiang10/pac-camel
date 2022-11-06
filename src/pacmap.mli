@@ -13,6 +13,9 @@ val find_move : t -> int * int -> int * int -> int * int
 (** [camel_ctx t] is the starting point and size of the camel in pacmap [t] *)
 val camel_ctx : t -> (int * int) * (int * int)
 
+(** [human_ctx t] is the starting point and size of a human in pacmap [t] *)
+val human_ctx : t -> int -> (int * int) * (int * int)
+
 (** [gen_map s a] is a generated seeded random pacmap dependent on seed [s] and
     sdl_area [a] Requires [t]>=0*)
 val gen_map : int -> Bogue.Sdl_area.t -> t
@@ -22,3 +25,7 @@ val add_item : t -> unit
 
 (** [draw_map s t] draws [t] to sdl_area [s] *)
 val draw_map : Bogue.Sdl_area.t -> t -> unit
+
+(** [get_path src dst] is a list containing the sequence of points that goes
+    from [src] to [dst] without crossing a wall in map [t] *)
+val get_path : int * int -> int * int -> (int * int) list

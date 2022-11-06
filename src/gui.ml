@@ -1,6 +1,8 @@
 open Bogue
 open Main
 open Pacmap
+open Movable
+open Camel
 open Tsdl
 open Utils
 open Random
