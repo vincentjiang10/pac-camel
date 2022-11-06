@@ -5,13 +5,13 @@ open Item
    renderer *)
 (* A function written will be called that takes in map t and renders the items
    with their respective animations *)
-type e =
+type space =
   | Empty
-  | Item of Item.t
+  | Mass of Item.t
 
 type cell =
   | Wall
-  | Floor of e
+  | Floor of space
 
 type t = {
   data : cell array array;
@@ -40,8 +40,8 @@ let find_move map p_from p_new =
   let x, y = to_canvas p_new in
   let x, y = (bound x, bound y) in
   match map.data.(x).(y) with
-  | Wall -> p_from
-  | Floor _ -> to_sdl_area (x, y)
+  | Wall -> (p_from, Empty)
+  | Floor space -> (to_sdl_area (x, y), space)
 
 let valid_xy s (x, y) = min x y >= 0 && max x y < s
 let camel_ctx t = (t.start, (!scale_x, !scale_y))

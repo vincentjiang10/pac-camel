@@ -6,9 +6,15 @@
 (** The abstract type of values representing pacmap *)
 type t
 
-(** [find_move t p1 p2] is the updated point of attempting to move to point [p2]
-    from point [p1] in pacmap [t]. Updates game state. *)
-val find_move : t -> int * int -> int * int -> int * int
+(** The type of values representing a space on the pacmap*)
+type space =
+  | Empty
+  | Mass of Item.t
+
+(** [find_move t p1 p2] is a pair with the updated point of attempting to move
+    to point [p2] from point [p1] in pacmap [t] along with the item at [p2].
+    Updates game state. *)
+val find_move : t -> int * int -> int * int -> (int * int) * space
 
 (** [camel_ctx t] is the starting point and size of the camel in pacmap [t] *)
 val camel_ctx : t -> (int * int) * (int * int)

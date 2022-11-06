@@ -7,7 +7,7 @@ module type Movable = sig
   val speed : t -> int
   val src : t -> string
   val size : t -> int * int
-  val move : t -> Pacmap.t -> int * int -> unit
+  val move : t ref -> Pacmap.t -> int * int -> unit
   val init : Pacmap.t -> string -> t
 end
 
@@ -24,12 +24,6 @@ module MovableCommon = struct
   let speed t = t.speed
   let src t = t.src
   let size t = t.size
-
-  let move t map (dir_x, dir_y) =
-    let x, y = t.pos in
-    let p = (x + dir_x, y + dir_y) in
-    let p_new = find_move map (x, y) p in
-    update_pos t p_new
 end
 
 module Camel : Movable = struct
@@ -38,16 +32,28 @@ module Camel : Movable = struct
    * - on item expiration (TBD)
    *)
   include MovableCommon
-
-  type camel_state = { has_2x : bool }
-
-  let state = ref { has_2x = false }
+  (* type camel_state = { has_2x : bool } let state = ref { has_2x = false }*)
 
   let init map image =
-    let default_state = { has_2x = false } in
-    state := default_state;
+    (* let default_state = { has_2x = false } in state := default_state;*)
     let pos, size = camel_ctx map in
     { pos; size; src = image; speed = fst size }
+
+  (* depending on the camel state, move may have different side effects on [t]
+     and on [map]. For example, we may mutate [!t]'s position or speed with an
+     item *)
+  (* TODO: may need to take in a list of references (human references); Reason
+     being a few items might affect both camels and humans *)
+  let move t map (dir_x, dir_y) =
+    let x, y = !t.pos in
+    let p = (x + dir_x, y + dir_y) in
+    let p_new, space = find_move map (x, y) p in
+    update_pos !t p_new;
+    match space with
+    | Mass item -> ()
+    | Empty -> ()
+
+  let test_pos (x, y) = print_endline (string_of_int x)
 end
 
 module Human = struct
@@ -57,16 +63,25 @@ module Human = struct
    *)
   include MovableCommon
 
-  type human_state = { is_scared : bool }
+  (* type human_state = { is_scared : bool }
 
-  let state = ref { is_scared = false }
+     let state = ref { is_scared = false } *)
   let index = ref 0
 
   let init map image =
-    let default_state = { is_scared = false } in
-    state := default_state;
+    (* let default_state = { is_scared = false } in state := default_state;*)
     index := !index + 1;
     (* take the mod 3 of index to get positioning of humans *)
     let pos, size = human_ctx map (!index mod 3) in
     { pos; size; src = image; speed = fst size }
+
+  (* depending on the human state, move may have different side effects on [t]
+     and on [map] *)
+  let move t map (dir_x, dir_y) =
+    let x, y = !t.pos in
+    let p = (x + dir_x, y + dir_y) in
+    let p_new, item = find_move map (x, y) p in
+    update_pos !t p_new
+
+  let test_pos (x, y) = print_endline (string_of_int x)
 end

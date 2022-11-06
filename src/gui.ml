@@ -146,13 +146,13 @@ let main () =
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         Camel.move camel map (0, -camel_speed)
+         Camel.move camel_ref map (0, -camel_speed)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         Camel.move camel map (0, camel_speed)
+         Camel.move camel_ref map (0, camel_speed)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-         Camel.move camel map (camel_speed, 0)
+         Camel.move camel_ref map (camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         Camel.move camel map (-camel_speed, 0)
+         Camel.move camel_ref map (-camel_speed, 0)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
