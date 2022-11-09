@@ -5,13 +5,13 @@ open Item
    renderer *)
 (* A function written will be called that takes in map t and renders the items
    with their respective animations *)
-type e =
+type space =
   | Empty
-  | Item of Item.t
+  | Mass of Item.t
 
 type cell =
   | Wall
-  | Floor of e
+  | Floor of space
 
 type t = {
   data : cell array array;
@@ -40,11 +40,16 @@ let find_move map p_from p_new =
   let x, y = to_canvas p_new in
   let x, y = (bound x, bound y) in
   match map.data.(x).(y) with
-  | Wall -> p_from
-  | Floor _ -> to_sdl_area (x, y)
+  | Wall -> (p_from, Empty)
+  | Floor space -> (to_sdl_area (x, y), space)
 
 let valid_xy s (x, y) = min x y >= 0 && max x y < s
 let camel_ctx t = (t.start, (!scale_x, !scale_y))
+
+let human_ctx t ind =
+  let w, h = t.size in
+  (* set initial position of humans to the center of map *)
+  (((w / 2) - 1 + ind, h / 2), (!scale_x, !scale_y))
 
 module Point = struct
   type t = int * int
@@ -178,7 +183,7 @@ let test_wb data =
   PointSet.iter (fun (x, y) -> data.(x).(y) <- Wall) !wall_boundary
 
 (* Takes in a starting map and populates it with tetris blocks representing
-   paths *)
+   walls *)
 let populate_map data s =
   let boundary_walk () =
     let wb_list = PointSet.elements !wall_boundary in
@@ -238,8 +243,23 @@ let mirror_left_y data s =
     done
   done
 
+(* [!paths.(src_in).(dest_in)] is the path from point [src = (x_s, y_s)] to
+   point [dst = (x_d, y_d)], where [src_in = x_s * s + y_s], [dst_in = x_d * s +
+   y_d], and [s = Array.length !paths]. A path is a list of points [(dir_x,
+   dir_y)] *)
+let paths = ref [||]
+
+(* Precomputing paths on gen_map *)
+let precompute_paths data =
+  let len = Array.length data in
+  paths := Array.make_matrix (len * len) (len * len) []
+
+let get_path src dst =
+  let to_ind (x, y) = (x * Array.length !paths) + y in
+  !paths.(src |> to_ind).(dst |> to_ind)
+
 (* Creates a pacmap with random odd size *)
-let gen_map (seed : int) sdl_area =
+let gen_map seed sdl_area =
   init seed;
   let s = (int 20 * 2) + 31 in
   let data = Array.make_matrix s s (Floor Empty) in
@@ -250,6 +270,7 @@ let gen_map (seed : int) sdl_area =
   populate_map data s;
   test_wb data;
   mirror_left_y data s;
+  precompute_paths data;
   let w_to, h_to = Bogue.Sdl_area.drawing_size sdl_area in
   scale_x := w_to / s;
   scale_y := h_to / s;
