@@ -243,30 +243,39 @@ let mirror_left_y data s =
     done
   done
 
-(* [!paths.(src_in).(dest_in)] is direction as a tuple representing a move to
-   proceed from point [src = (x_s, y_s)] to point [dst = (x_d, y_d)], where
-   [src_in = x_s * s + y_s], [dst_in = x_d * s + y_d], and [s = Array.length
-   !paths]. A path is a list of points [(dir_x, dir_y)] *)
+(* [!paths.(src_in).(dest_in)] is the shortest path length from point [src =
+   (x_s, y_s)] to point [dst = (x_d, y_d)], where [src_in = x_s * s + y_s],
+   [dst_in = x_d * s + y_d], and [s = Array.length !paths]. *)
 let paths = ref [||]
 
-(* Precomputing paths on gen_map *)
+(* Precomputing path lengths on gen_map using BFS *)
 let precompute_paths data =
   let len = Array.length data in
   paths := Array.make_matrix (len * len) (len * len) (0, 0)
+(* TODO: BFS search; after finding shortest path, fill out any i, j between the
+   src and dest indices *)
 
-let get_path_dir src dst =
-  let (x_src, y_src), dst = (src |> to_canvas, dst |> to_canvas) in
+(* TODO: use paths to find neighboring nodes having the least weight*)
+let get_path_dir map src dst =
+  let src, dst = (src |> to_canvas, dst |> to_canvas) in
   (* greedy choice substitute *)
   let dirs = [ (0, 1); (1, 0); (0, -1); (-1, 0) ] in
-  List.fold_left
-    (* TODO: add randomness to direction *)
-      (fun (x_dir, y_dir) (x_dir', y_dir') ->
-      if
-        dist (x_src + x_dir', y_src + y_dir') dst
-        < dist (x_src + x_dir, y_src + y_dir) dst
-      then (x_dir', y_dir')
-      else (x_dir, y_dir))
-    (0, 0) dirs
+  let man_dist (x0, y0) (x1, y1) = abs (x1 - x0) + abs (y1 - y0) in
+  let sum (x0, y0) (x1, y1) = (x0 + x1, y0 + y1) in
+  let dirs =
+    List.sort
+      (fun dir0 dir1 ->
+        man_dist (sum src dir0) dst - man_dist (sum src dir1) dst)
+      dirs
+  in
+  let rec pick_space = function
+    | [] -> (0, 0)
+    | (x_dir, y_dir) :: t -> (
+        match map.data.(fst src + x_dir).(snd src + y_dir) with
+        | Wall -> pick_space t
+        | Floor _ -> (x_dir, y_dir))
+  in
+  if float 1. > 0.5 then pick_space dirs else List.nth dirs (int 4)
 (* let to_ind (x, y) = (x * Array.length !paths) + y in !paths.(src |>
    to_ind).(dst |> to_ind) *)
 

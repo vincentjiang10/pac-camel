@@ -43,3 +43,6 @@ val cactusItem : unit -> t
 
 (** Item to teleport the camel to another teleport item *)
 val teleportItem : unit -> t
+
+(** Item that dims the lighting of the map to only the camel (like a spotlight) *)
+val teleportItem : unit -> t

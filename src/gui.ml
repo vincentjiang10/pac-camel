@@ -149,27 +149,36 @@ let main () =
   (* let show_gui = ref true in *)
   let board = make_board () in
   make_sdl_windows ~windows:[ win ] board;
-  let start_fps, fps = Time.adaptive_fps 120 in
+  let start_fps, fps = Time.adaptive_fps 10 in
+
+  let camel_dir_ref = ref (0, 0) in
+  let auto = ref true in
 
   (* TODO: add trailing effect behind camel (can be an effect )*)
   (* TODO: maybe let the camel always be going in a direction, which can be
      changed on key input *)
   let rec mainloop e =
     let camel = !camel_ref in
+    let camel_dir = !camel_dir_ref in
     let humans = !human_ref_lst in
     let map = !map_ref in
     let camel_speed = Camel.speed camel in
     let human_speed = Human.speed !(List.nth humans 0) in
+    let move_check dir =
+      (* if camel_dir = dir then auto := true else begin auto := false;
+         Camel.move camel_ref map dir; camel_dir_ref := dir end *)
+      camel_dir_ref := dir
+    in
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         Camel.move camel_ref map (0, -camel_speed)
+         move_check (0, -camel_speed)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         Camel.move camel_ref map (0, camel_speed)
+         move_check (0, camel_speed)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-         Camel.move camel_ref map (camel_speed, 0)
+         move_check (camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         Camel.move camel_ref map (-camel_speed, 0)
+         move_check (-camel_speed, 0)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
@@ -177,7 +186,9 @@ let main () =
          reset_game (int 10000) (* go (render_copy renderer camel_texture) *)
      | _ -> ());
 
+    (* TODO: implement auto camel movement in the direction of !camel_dir? *)
     Draw.set_color renderer bg;
+    if !auto then Camel.move camel_ref map camel_dir;
 
     go (Sdl.render_clear renderer);
     Draw.set_color renderer (100, 200, 200, 255);
@@ -196,17 +207,16 @@ let main () =
 
     (* human rendering *)
     Draw.set_color renderer (200, 100, 200, 255);
-    List.iter
-      (fun human ->
+    List.iteri
+      (fun i human ->
         let x_h, y_h = Human.pos !human in
         let w, h = Human.size !human in
         render_rect ~x:x_h ~y:y_h ~w ~h;
         (* experimental *)
-        if Time.now () mod 10 = 0 then
-          (* problem with trying to go to the left and right *)
+        if float 1. > 0.5 then
           let scale k (x, y) = (k * x, k * y) in
           Human.move human map
-            (get_path_dir (x_h, y_h) (x_c, y_c) |> scale (Human.speed !human)))
+            (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
       humans;
 
     (* TODO: implement a timer that brings out the humans one at a time *)

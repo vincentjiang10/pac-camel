@@ -37,3 +37,6 @@ let cactusItem () =
 
 let teleportItem () =
   { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
+
+let dimItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
