@@ -19,6 +19,7 @@ let effect t = t.effect
 let coinsItem () =
   { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
 
+(* TODO: fix problem with camel crossing at intersections *)
 let speedItem () =
   { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
 

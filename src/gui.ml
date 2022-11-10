@@ -3,6 +3,7 @@ open Main
 open Pacmap
 open Movable
 open Camel
+open Human
 open Tsdl
 open Utils
 open Random
@@ -55,7 +56,7 @@ let sdl_area = W.get_sdl_area canvas
 let map_ref = ref (gen_map (int 500) sdl_area)
 
 (* reference to camel *)
-let camel_ref = ref (Camel.init !map_ref "assets/images/camel-cartoon.png")
+let camel_ref = ref (Camel.init !map_ref "assets/images/camel.png")
 
 let camel_widget =
   let size = Camel.size !camel_ref in
@@ -71,6 +72,17 @@ let camel_l =
   let y_pos = snd pos in
   ref (L.resident ~x:x_pos ~y:y_pos !camel_widget)
 
+(* references to humans *)
+
+let rec human_inits acc n =
+  if n = 0 then acc
+  else
+    human_inits
+      (ref (Human.init !map_ref "assets/images/human.png") :: acc)
+      (n - 1)
+
+let human_ref_lst = ref (human_inits [] 4)
+
 (* let reset_camel () = camel_ref := Camel.init !map_ref
    "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.size
    !camel_ref in let width = fst size in let height = snd size in W.sdl_area
@@ -83,6 +95,7 @@ let reset_map (seed : int) =
   Sdl_area.clear sdl_area;
   map_ref := gen_map seed sdl_area;
   camel_ref := Camel.init !map_ref "assets/images/camel-cartoon.png";
+  human_ref_lst := human_inits [] 4;
   draw_map sdl_area !map_ref
 
 (* sets up the game *)
@@ -139,10 +152,14 @@ let main () =
   let start_fps, fps = Time.adaptive_fps 120 in
 
   (* TODO: add trailing effect behind camel (can be an effect )*)
+  (* TODO: maybe let the camel always be going in a direction, which can be
+     changed on key input *)
   let rec mainloop e =
     let camel = !camel_ref in
+    let humans = !human_ref_lst in
     let map = !map_ref in
     let camel_speed = Camel.speed camel in
+    let human_speed = Human.speed !(List.nth humans 0) in
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
@@ -164,16 +181,35 @@ let main () =
 
     go (Sdl.render_clear renderer);
     Draw.set_color renderer (100, 200, 200, 255);
-    let x, y = Camel.pos camel in
+    let x_c, y_c = Camel.pos camel in
     let w, h = Camel.size camel in
     (* replace render_fill_rect with rendering an image of a camel *)
     refresh_custom_windows board;
 
-    L.setx !camel_l x;
-    L.sety !camel_l y;
+    L.setx !camel_l x_c;
+    L.sety !camel_l y_c;
     Sdl_area.set_texture !camel_area camel_texture;
-    go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)));
+    let render_rect ~x ~y ~w ~h =
+      go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)))
+    in
+    render_rect ~x:x_c ~y:y_c ~w ~h;
 
+    (* human rendering *)
+    Draw.set_color renderer (200, 100, 200, 255);
+    List.iter
+      (fun human ->
+        let x_h, y_h = Human.pos !human in
+        let w, h = Human.size !human in
+        render_rect ~x:x_h ~y:y_h ~w ~h;
+        (* experimental *)
+        if Time.now () mod 10 = 0 then
+          (* problem with trying to go to the left and right *)
+          let scale k (x, y) = (k * x, k * y) in
+          Human.move human map
+            (get_path_dir (x_h, y_h) (x_c, y_c) |> scale (Human.speed !human)))
+      humans;
+
+    (* TODO: implement a timer that brings out the humans one at a time *)
     if
       not (one_step true (start_fps, fps) board)
       (* one_step returns true if fps was executed *)

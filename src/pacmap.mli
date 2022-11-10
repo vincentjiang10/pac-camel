@@ -32,6 +32,6 @@ val add_item : t -> unit
 (** [draw_map s t] draws [t] to sdl_area [s] *)
 val draw_map : Bogue.Sdl_area.t -> t -> unit
 
-(** [get_path src dst] is a list containing the sequence of points that goes
-    from [src] to [dst] without crossing a wall in map [t] *)
-val get_path : int * int -> int * int -> (int * int) list
+(** [get_path_dir src dst] is a direction unit vector as a point to proceed from
+    [src] to [dst] without crossing a wall in map [t] *)
+val get_path_dir : int * int -> int * int -> int * int

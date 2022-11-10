@@ -49,7 +49,7 @@ let camel_ctx t = (t.start, (!scale_x, !scale_y))
 let human_ctx t ind =
   let w, h = t.size in
   (* set initial position of humans to the center of map *)
-  (((w / 2) - 1 + ind, h / 2), (!scale_x, !scale_y))
+  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, (!scale_x, !scale_y))
 
 module Point = struct
   type t = int * int
@@ -210,7 +210,7 @@ let populate_map data s =
       add_n_walls wall_points len
     in
     (* generate more walls to improve map generation efficiency *)
-    for i = 1 to 5 do
+    for i = 1 to 3 do
       gen_wall_points ()
     done;
     update_wb s
@@ -243,25 +243,37 @@ let mirror_left_y data s =
     done
   done
 
-(* [!paths.(src_in).(dest_in)] is the path from point [src = (x_s, y_s)] to
-   point [dst = (x_d, y_d)], where [src_in = x_s * s + y_s], [dst_in = x_d * s +
-   y_d], and [s = Array.length !paths]. A path is a list of points [(dir_x,
-   dir_y)] *)
+(* [!paths.(src_in).(dest_in)] is direction as a tuple representing a move to
+   proceed from point [src = (x_s, y_s)] to point [dst = (x_d, y_d)], where
+   [src_in = x_s * s + y_s], [dst_in = x_d * s + y_d], and [s = Array.length
+   !paths]. A path is a list of points [(dir_x, dir_y)] *)
 let paths = ref [||]
 
 (* Precomputing paths on gen_map *)
 let precompute_paths data =
   let len = Array.length data in
-  paths := Array.make_matrix (len * len) (len * len) []
+  paths := Array.make_matrix (len * len) (len * len) (0, 0)
 
-let get_path src dst =
-  let to_ind (x, y) = (x * Array.length !paths) + y in
-  !paths.(src |> to_ind).(dst |> to_ind)
+let get_path_dir src dst =
+  let (x_src, y_src), dst = (src |> to_canvas, dst |> to_canvas) in
+  (* greedy choice substitute *)
+  let dirs = [ (0, 1); (1, 0); (0, -1); (-1, 0) ] in
+  List.fold_left
+    (* TODO: add randomness to direction *)
+      (fun (x_dir, y_dir) (x_dir', y_dir') ->
+      if
+        dist (x_src + x_dir', y_src + y_dir') dst
+        < dist (x_src + x_dir, y_src + y_dir) dst
+      then (x_dir', y_dir')
+      else (x_dir, y_dir))
+    (0, 0) dirs
+(* let to_ind (x, y) = (x * Array.length !paths) + y in !paths.(src |>
+   to_ind).(dst |> to_ind) *)
 
 (* Creates a pacmap with random odd size *)
 let gen_map seed sdl_area =
   init seed;
-  let s = (int 20 * 2) + 31 in
+  let s = (2 * int 20) + 30 in
   let data = Array.make_matrix s s (Floor Empty) in
   empty wall_set;
   empty wall_boundary;
@@ -276,7 +288,14 @@ let gen_map seed sdl_area =
   scale_y := h_to / s;
   shift_x := w_to mod s / 2;
   shift_y := h_to mod s / 2;
-  let start = to_sdl_area (1, 1) in
+  let rec pick_random_space () =
+    let x, y = (int 30, int 30) in
+    match data.(x).(y) with
+    | Wall -> pick_random_space ()
+    | Floor _ ->
+        if min x y <= 5 or max x y >= s - 6 then pick_random_space () else (x, y)
+  in
+  let start = () |> pick_random_space |> to_sdl_area in
   { data; start; size = (s, s) }
 
 (* mutate map data to include a random item at a Floor cell *)
