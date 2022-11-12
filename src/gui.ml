@@ -3,6 +3,7 @@ open Main
 open Pacmap
 open Movable
 open Camel
+open Human
 open Tsdl
 open Utils
 open Random
@@ -55,13 +56,46 @@ let sdl_area = W.get_sdl_area canvas
 let map_ref = ref (gen_map (int 500) sdl_area)
 
 (* reference to camel *)
-let camel_ref = ref (Camel.init !map_ref "assets/images/camel-cartoon.png")
+let camel_ref = ref (Camel.init !map_ref "assets/images/camel.png")
+
+let camel_widget =
+  let size = Camel.size !camel_ref in
+  let width = fst size in
+  let height = snd size in
+  ref (W.sdl_area ~w:width ~h:height ())
+
+let camel_area = ref (W.get_sdl_area !camel_widget)
+
+let camel_l =
+  let pos = Camel.pos !camel_ref in
+  let x_pos = fst pos in
+  let y_pos = snd pos in
+  ref (L.resident ~x:x_pos ~y:y_pos !camel_widget)
+
+(* references to humans *)
+
+let rec human_inits acc n =
+  if n = 0 then acc
+  else
+    human_inits
+      (ref (Human.init !map_ref "assets/images/human.png") :: acc)
+      (n - 1)
+
+let human_ref_lst = ref (human_inits [] 4)
+
+(* let reset_camel () = camel_ref := Camel.init !map_ref
+   "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.size
+   !camel_ref in let width = fst size in let height = snd size in W.sdl_area
+   ?w:width ?h:height ()); camel_area := W.get_sdl_area !camel_widget; camel_l
+   := let pos = pos !camel_ref in let x_pos = fst pos in let y_pos = snd pos in
+   L.resident ~x:x_pos ~y:y_pos !camel_widget *)
 
 let reset_map (seed : int) =
   (* reset canvas *)
   Sdl_area.clear sdl_area;
   map_ref := gen_map seed sdl_area;
   camel_ref := Camel.init !map_ref "assets/images/camel-cartoon.png";
+  human_ref_lst := human_inits [] 4;
   draw_map sdl_area !map_ref
 
 (* sets up the game *)
@@ -115,23 +149,36 @@ let main () =
   (* let show_gui = ref true in *)
   let board = make_board () in
   make_sdl_windows ~windows:[ win ] board;
-  let start_fps, fps = Time.adaptive_fps 120 in
+  let start_fps, fps = Time.adaptive_fps 10 in
+
+  let camel_dir_ref = ref (0, 0) in
+  let auto = ref true in
 
   (* TODO: add trailing effect behind camel (can be an effect )*)
+  (* TODO: maybe let the camel always be going in a direction, which can be
+     changed on key input *)
   let rec mainloop e =
     let camel = !camel_ref in
+    let camel_dir = !camel_dir_ref in
+    let humans = !human_ref_lst in
     let map = !map_ref in
     let camel_speed = Camel.speed camel in
+    let human_speed = Human.speed !(List.nth humans 0) in
+    let move_check dir =
+      (* if camel_dir = dir then auto := true else begin auto := false;
+         Camel.move camel_ref map dir; camel_dir_ref := dir end *)
+      camel_dir_ref := dir
+    in
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         Camel.move camel_ref map (0, -camel_speed)
+         move_check (0, -camel_speed)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         Camel.move camel_ref map (0, camel_speed)
+         move_check (0, camel_speed)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-         Camel.move camel_ref map (camel_speed, 0)
+         move_check (camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         Camel.move camel_ref map (-camel_speed, 0)
+         move_check (-camel_speed, 0)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
@@ -139,15 +186,40 @@ let main () =
          reset_game (int 10000)
      | _ -> ());
 
+    (* TODO: implement auto camel movement in the direction of !camel_dir? *)
     Draw.set_color renderer bg;
+    if !auto then Camel.move camel_ref map camel_dir;
 
     go (Sdl.render_clear renderer);
     Draw.set_color renderer (100, 200, 200, 255);
-    let x, y = Camel.pos camel in
+    let x_c, y_c = Camel.pos camel in
     let w, h = Camel.size camel in
 
     refresh_custom_windows board;
 
+    L.setx !camel_l x_c;
+    L.sety !camel_l y_c;
+    Sdl_area.set_texture !camel_area camel_texture;
+    let render_rect ~x ~y ~w ~h =
+      go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)))
+    in
+    render_rect ~x:x_c ~y:y_c ~w ~h;
+
+    (* human rendering *)
+    Draw.set_color renderer (200, 100, 200, 255);
+    List.iteri
+      (fun i human ->
+        let x_h, y_h = Human.pos !human in
+        let w, h = Human.size !human in
+        render_rect ~x:x_h ~y:y_h ~w ~h;
+        (* experimental *)
+        if float 1. > 0.5 then
+          let scale k (x, y) = (k * x, k * y) in
+          Human.move human map
+            (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
+      humans;
+
+    (* TODO: implement a timer that brings out the humans one at a time *)
     if
       not (one_step true (start_fps, fps) board)
       (* one_step returns true if fps was executed *)

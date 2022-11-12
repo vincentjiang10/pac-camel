@@ -52,8 +52,6 @@ module Camel : Movable = struct
     match space with
     | Mass item -> ()
     | Empty -> ()
-
-  let test_pos (x, y) = print_endline (string_of_int x)
 end
 
 module Human = struct
@@ -66,13 +64,13 @@ module Human = struct
   (* type human_state = { is_scared : bool }
 
      let state = ref { is_scared = false } *)
-  let index = ref 0
+  let index = ref 1
 
   let init map image =
     (* let default_state = { is_scared = false } in state := default_state;*)
-    index := !index + 1;
-    (* take the mod 3 of index to get positioning of humans *)
-    let pos, size = human_ctx map (!index mod 3) in
+    incr index;
+    (* take the mod 4 of index to get positioning of humans *)
+    let pos, size = human_ctx map (!index mod 4) in
     { pos; size; src = image; speed = fst size }
 
   (* depending on the human state, move may have different side effects on [t]
@@ -82,6 +80,4 @@ module Human = struct
     let p = (x + dir_x, y + dir_y) in
     let p_new, item = find_move map (x, y) p in
     update_pos !t p_new
-
-  let test_pos (x, y) = print_endline (string_of_int x)
 end
