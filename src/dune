@@ -1,5 +1,4 @@
 (library
  (name game)
  (public_name Game)
- (libraries bogue)
- (modules_without_implementation camel))
+ (libraries bogue async lwt))
