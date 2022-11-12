@@ -91,27 +91,18 @@ let reset_game seed = reset_map seed
 let bg = (255, 255, 255, 255)
 
 let make_greeting_board =
-  let layout = L.superpose [ start_title_l; start_button_l ] in
-  of_layout layout
+  let greeting_layout = L.superpose [ start_title_l; start_button_l ] in
+  L.set_width greeting_layout 800;
+  L.set_height greeting_layout 800;
+
+  of_layout greeting_layout
 
 let make_game_board =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
   let layout = L.superpose [ canvas_l; !camel_l ] in
-
-  (* TODO @GUI: fix widget dimensions ans positions *)
-  (* TODO @GUI: fix error where initial click does not generate correct map *)
-  (* action to be connected to start button *)
-  let start_action _ _ _ =
-    (* reset_game (int 10000); *)
-    L.set_rooms layout [ start_button_l; canvas_l ]
-    (* this line replace current layout with an empty list, add widgets (to be
-       drawn after start) in this list e.g. map, camel, human etc. *)
-  in
-  (* connect action to button. Triggered when button is pushed*)
-  (* let c = W.connect start_button_w start_button_w start_action T.buttons_down
-     in *)
-  (* set up board *)
+  L.set_width layout 385;
+  L.set_height layout 385;
   of_layout layout
 
 let board = ref make_greeting_board
@@ -126,19 +117,19 @@ let main () =
          Sdl.Window.(shown + popup_menu))
   in
 
-  let renderer = go (Sdl.create_renderer win) in
+  let renderer = ref (go (Sdl.create_renderer win)) in
   let camel_texture =
     let camel_surface = Tsdl_image.Image.load (Camel.src !camel_ref) in
-    let t = create_texture_from_surface renderer (go camel_surface) in
+    let t = create_texture_from_surface !renderer (go camel_surface) in
     go t
   in
 
   (* very important: set blend mode: *)
-  go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
+  go (Sdl.set_render_draw_blend_mode !renderer Sdl.Blend.mode_blend);
 
   go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none);
-  Draw.set_color renderer bg;
-  go (Sdl.render_clear renderer);
+  Draw.set_color !renderer bg;
+  go (Sdl.render_clear !renderer);
 
   (* let show_gui = ref true in *)
   make_sdl_windows ~windows:[ win ] !board;
@@ -161,13 +152,14 @@ let main () =
          Camel.move camel map (-camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
          print_endline "game start";
-         (* upon (Ivar.read (Ivar.create_full (fun _ -> board :=
-            make_game_board))) (fun _ -> board := make_game_board); *)
          let change_board () = board := make_game_board in
+         (* let th : Thread.t = Thread.create Sync.push change_board in *)
          let th : Thread.t = Thread.create change_board () in
          Thread.join th;
-         make_sdl_windows ~windows:[ win ] !board;
-         reset_game (int 1000)
+         let make_window () = make_sdl_windows ~windows:[ win ] !board in
+         let th2 : Thread.t = Thread.create make_window () in
+         Thread.join th2;
+         reset_game (int 10000)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
@@ -175,10 +167,10 @@ let main () =
          reset_game (int 10000) (* go (render_copy renderer camel_texture) *)
      | _ -> ());
 
-    Draw.set_color renderer bg;
+    Draw.set_color !renderer bg;
 
-    go (Sdl.render_clear renderer);
-    Draw.set_color renderer (100, 200, 200, 255);
+    go (Sdl.render_clear !renderer);
+    Draw.set_color !renderer (100, 200, 200, 255);
     let x, y = Camel.pos camel in
     let w, h = Camel.size camel in
     (* replace render_fill_rect with rendering an image of a camel *)
@@ -187,14 +179,14 @@ let main () =
     L.setx !camel_l x;
     L.sety !camel_l y;
     Sdl_area.set_texture !camel_area camel_texture;
-    go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)));
+    go (Sdl.render_fill_rect !renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)));
 
     if
       not (one_step true (start_fps, fps) !board)
       (* one_step returns true if fps was executed *)
     then fps ()
     else fps ();
-    Sdl.render_present renderer;
+    Sdl.render_present !renderer;
     mainloop e
   in
 
@@ -207,6 +199,5 @@ let main () =
 (* TODO @GUI: add to this function, which should initialize gui widgets (be
    prepared to take in functions that should be called based on widget
    events) *)
-let greeting =
-  main ();
-  Core.never_returns (Async.Scheduler.go ())
+let greeting = main ()
+(* Core.never_returns (Async.Scheduler.go ()) *)
