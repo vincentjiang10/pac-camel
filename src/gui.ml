@@ -58,20 +58,6 @@ let map_ref = ref (gen_map (int 500) sdl_area)
 (* reference to camel *)
 let camel_ref = ref (Camel.init !map_ref "assets/images/camel.png")
 
-let camel_widget =
-  let size = Camel.size !camel_ref in
-  let width = fst size in
-  let height = snd size in
-  ref (W.sdl_area ~w:width ~h:height ())
-
-let camel_area = ref (W.get_sdl_area !camel_widget)
-
-let camel_l =
-  let pos = Camel.pos !camel_ref in
-  let x_pos = fst pos in
-  let y_pos = snd pos in
-  ref (L.resident ~x:x_pos ~y:y_pos !camel_widget)
-
 (* references to humans *)
 
 let rec human_inits acc n =
@@ -112,7 +98,7 @@ let make_greeting_board =
 let make_game_board =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  let layout = L.superpose [ canvas_l; !camel_l ] in
+  let layout = L.superpose [ canvas_l ] in
   L.set_width layout 385;
   L.set_height layout 385;
   of_layout layout
@@ -136,6 +122,13 @@ let main () =
     go t
   in
 
+  let human_texture =
+    let human_surface =
+      Tsdl_image.Image.load (Human.src !(List.hd !human_ref_lst))
+    in
+    let t = create_texture_from_surface renderer (go human_surface) in
+    go t
+  in
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
 
@@ -203,9 +196,6 @@ let main () =
     (* replace render_fill_rect with rendering an image of a camel *)
     refresh_custom_windows !board;
 
-    L.setx !camel_l x_c;
-    L.sety !camel_l y_c;
-    Sdl_area.set_texture !camel_area camel_texture;
     let render_rect ~x ~y ~w ~h =
       go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)))
     in
@@ -213,10 +203,28 @@ let main () =
 
     (* human rendering *)
     Draw.set_color renderer (200, 100, 200, 255);
+
+    (* TODO: implement a timer that brings out the humans one at a time *)
+    if
+      not (one_step true (start_fps, fps) !board)
+      (* one_step returns true if fps was executed *)
+    then fps ()
+    else fps ();
+
+    (* Camel and human rendering happens after fps so that they are on top of
+       the map. *)
+    go
+      (Sdl.render_copy
+         ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
+         renderer camel_texture);
     List.iteri
       (fun i human ->
         let x_h, y_h = Human.pos !human in
         let w, h = Human.size !human in
+        go
+          (Sdl.render_copy
+             ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h))
+             renderer human_texture);
         render_rect ~x:x_h ~y:y_h ~w ~h;
         (* experimental *)
         if float 1. > 0.5 then
@@ -225,12 +233,6 @@ let main () =
             (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
       humans;
 
-    (* TODO: implement a timer that brings out the humans one at a time *)
-    if
-      not (one_step true (start_fps, fps) !board)
-      (* one_step returns true if fps was executed *)
-    then fps ()
-    else fps ();
     Sdl.render_present renderer;
     mainloop e
   in
