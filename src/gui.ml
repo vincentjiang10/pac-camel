@@ -2,7 +2,6 @@ open Bogue
 open Main
 open Pacmap
 open Movable
-open Camel
 open Human
 open Tsdl
 open Utils
@@ -138,6 +137,11 @@ let main () =
     let t = create_texture_from_surface renderer (go camel_surface) in
     go t
   in
+  let human_texture =
+    let human_surface = Tsdl_image.Image.load (Human.src !(List.hd !human_ref_lst)) in
+    let t = create_texture_from_surface renderer (go human_surface) in
+    go t
+  in
 
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
@@ -197,27 +201,13 @@ let main () =
 
     refresh_custom_windows board;
 
-    L.setx !camel_l x_c;
-    L.sety !camel_l y_c;
-    Sdl_area.set_texture !camel_area camel_texture;
     let render_rect ~x ~y ~w ~h =
       go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)))
     in
-    render_rect ~x:x_c ~y:y_c ~w ~h;
 
     (* human rendering *)
     Draw.set_color renderer (200, 100, 200, 255);
-    List.iteri
-      (fun i human ->
-        let x_h, y_h = Human.pos !human in
-        let w, h = Human.size !human in
-        render_rect ~x:x_h ~y:y_h ~w ~h;
-        (* experimental *)
-        if float 1. > 0.5 then
-          let scale k (x, y) = (k * x, k * y) in
-          Human.move human map
-            (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
-      humans;
+   
 
     (* TODO: implement a timer that brings out the humans one at a time *)
     if
@@ -226,11 +216,25 @@ let main () =
     then fps ()
     else fps ();
 
+    (** render camel*)
     go
       (Sdl.render_copy
-         ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
+         ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
          renderer camel_texture);
-
+    render_rect ~x:x_c ~y:y_c ~w ~h;
+    (* render human*)
+ List.iteri
+      (fun i human ->
+        let x_h, y_h = Human.pos !human in
+        let w, h = Human.size !human in
+        go (Sdl.render_copy ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h)) renderer human_texture);
+        render_rect ~x:x_h ~y:y_h ~w ~h;
+        (* experimental *)
+        if float 1. > 0.5 then
+          let scale k (x, y) = (k * x, k * y) in
+          Human.move human map
+            (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
+      humans;
     Sdl.render_present renderer;
     mainloop e
   in
