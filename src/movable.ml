@@ -54,7 +54,7 @@ module Camel : Movable = struct
     | Empty -> ()
 end
 
-module Human = struct
+module Human : Movable = struct
   (* Possible instances of human state modification:
    * - Upon camel hitting certain camel items
    * - (possible) upon hitting human items
