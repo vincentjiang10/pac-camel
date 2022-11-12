@@ -143,6 +143,7 @@ let main () =
     let t = create_texture_from_surface !renderer (go camel_surface) in
     go t
   in
+
   let human_texture =
     let human_surface = Tsdl_image.Image.load (Human.src !(List.hd !human_ref_lst)) in
     let t = create_texture_from_surface !renderer (go human_surface) in
@@ -232,14 +233,14 @@ let main () =
       (* one_step returns true if fps was executed *)
     then fps ()
     else fps ();
-
+    
     (** render camel*)
     go
       (Sdl.render_copy
          ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
          !renderer camel_texture);
     render_rect ~x:x_c ~y:y_c ~w ~h;
-    (* render human*)
+    (* render human*) 
  List.iteri
       (fun i human ->
         let x_h, y_h = Human.pos !human in
@@ -247,10 +248,10 @@ let main () =
         go (Sdl.render_copy ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h)) !renderer human_texture);
         render_rect ~x:x_h ~y:y_h ~w ~h;
         (* experimental *)
-        if float 1. > 0.5 then
+        (* if float 1. > 0.5 then
           let scale k (x, y) = (k * x, k * y) in
           Human.move human map
-            (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
+            (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed)) *))
       humans;
     Sdl.render_present !renderer;
     mainloop e
