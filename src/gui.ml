@@ -23,7 +23,7 @@ let start_title_w =
     ~fg:Draw.(opaque (find_color "firebrick"))
     "The Pac-Camel Game"
 
-let start_button_w = W.button "Start the Game"
+let start_button_w = W.button "Press [s] to Start the Game"
 
 (*LAYOUT*)
 
@@ -33,7 +33,7 @@ let start_button_w = W.button "Start the Game"
    or ?); these would trigger events that the buttons that they correspond to
    trigger *)
 let start_title_l = L.resident start_title_w ~y:2
-let start_button_l = L.resident ~x:200 ~y:35 ~w:55 ~h:2 start_button_w
+let start_button_l = L.resident ~x:30 ~y:35 ~w:250 ~h:2 start_button_w
 
 (* TODO @GUI (post-MS2): Implement more widgets 
  *  - score displayer
@@ -102,25 +102,22 @@ let reset_map (seed : int) =
 let reset_game seed = reset_map seed
 let bg = (255, 255, 255, 255)
 
-let make_board () =
+let make_greeting_board =
+  let greeting_layout = L.superpose [ start_title_l; start_button_l ] in
+  L.set_width greeting_layout 800;
+  L.set_height greeting_layout 800;
+
+  of_layout greeting_layout
+
+let make_game_board =
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
   let layout = L.superpose [ canvas_l; !camel_l ] in
-
-  (* TODO @GUI: fix widget dimensions ans positions *)
-  (* TODO @GUI: fix error where initial click does not generate correct map *)
-  (* action to be connected to start button *)
-  let start_action _ _ _ =
-    (* reset_game (int 10000); *)
-    L.set_rooms layout [ start_button_l; canvas_l ]
-    (* this line replace current layout with an empty list, add widgets (to be
-       drawn after start) in this list e.g. map, camel, human etc. *)
-  in
-  (* connect action to button. Triggered when button is pushed*)
-  (* let c = W.connect start_button_w start_button_w start_action T.buttons_down
-     in *)
-  (* set up board *)
+  L.set_width layout 385;
+  L.set_height layout 385;
   of_layout layout
+
+let board = ref make_greeting_board
 
 let main () =
   let open Sdl in
@@ -147,8 +144,7 @@ let main () =
   go (Sdl.render_clear renderer);
 
   (* let show_gui = ref true in *)
-  let board = make_board () in
-  make_sdl_windows ~windows:[ win ] board;
+  make_sdl_windows ~windows:[ win ] !board;
   let start_fps, fps = Time.adaptive_fps 10 in
 
   let camel_dir_ref = ref (0, 0) in
@@ -179,6 +175,16 @@ let main () =
          move_check (camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
          move_check (-camel_speed, 0)
+     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
+         print_endline "game start";
+         let change_board () = board := make_game_board in
+         (* let th : Thread.t = Thread.create Sync.push change_board in *)
+         let th : Thread.t = Thread.create change_board () in
+         Thread.join th;
+         let make_window () = make_sdl_windows ~windows:[ win ] !board in
+         let th2 : Thread.t = Thread.create make_window () in
+         Thread.join th2;
+         reset_game (int 10000)
      | `Key_down
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
@@ -195,7 +201,7 @@ let main () =
     let x_c, y_c = Camel.pos camel in
     let w, h = Camel.size camel in
     (* replace render_fill_rect with rendering an image of a camel *)
-    refresh_custom_windows board;
+    refresh_custom_windows !board;
 
     L.setx !camel_l x_c;
     L.sety !camel_l y_c;
@@ -221,7 +227,7 @@ let main () =
 
     (* TODO: implement a timer that brings out the humans one at a time *)
     if
-      not (one_step true (start_fps, fps) board)
+      not (one_step true (start_fps, fps) !board)
       (* one_step returns true if fps was executed *)
     then fps ()
     else fps ();
