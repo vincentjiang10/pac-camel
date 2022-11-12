@@ -145,16 +145,20 @@ let main () =
   in
   let human_texture =
     let human_surface = Tsdl_image.Image.load (Human.src !(List.hd !human_ref_lst)) in
-    let t = create_texture_from_surface renderer (go human_surface) in
+    let t = create_texture_from_surface !renderer (go human_surface) in
     go t
   in
 
+  let camel_dir_ref = ref (0, 0) in
+
+  let auto = ref true in
+  
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode !renderer Sdl.Blend.mode_blend);
 
   (* go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none); *)
-  Draw.set_color renderer bg;
-  go (Sdl.render_clear renderer);
+  Draw.set_color !renderer bg;
+  go (Sdl.render_clear !renderer);
   go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none);
   Draw.set_color !renderer bg;
   go (Sdl.render_clear !renderer);
@@ -185,7 +189,7 @@ let main () =
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
          move_check (camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         Camel.move camel map (-camel_speed, 0)
+         Camel.move camel_ref map (-camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
          print_endline "game start";
          let change_board () = board := make_game_board in
@@ -204,22 +208,22 @@ let main () =
      | _ -> ());
 
     (* TODO: implement auto camel movement in the direction of !camel_dir? *)
-    Draw.set_color renderer bg;
+    Draw.set_color !renderer bg;
     if !auto then Camel.move camel_ref map camel_dir;
 
-    go (Sdl.render_clear renderer);
-    Draw.set_color renderer (100, 200, 200, 255);
+    go (Sdl.render_clear !renderer);
+    Draw.set_color !renderer (100, 200, 200, 255);
     let x_c, y_c = Camel.pos camel in
     let w, h = Camel.size camel in
 
-    refresh_custom_windows board;
+    refresh_custom_windows !board;
 
     let render_rect ~x ~y ~w ~h =
-      go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)))
+      go (Sdl.render_fill_rect !renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)))
     in
 
     (* human rendering *)
-    Draw.set_color renderer (200, 100, 200, 255);
+    Draw.set_color !renderer (200, 100, 200, 255);
    
 
     (* TODO: implement a timer that brings out the humans one at a time *)
@@ -233,14 +237,14 @@ let main () =
     go
       (Sdl.render_copy
          ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
-         renderer camel_texture);
+         !renderer camel_texture);
     render_rect ~x:x_c ~y:y_c ~w ~h;
     (* render human*)
  List.iteri
       (fun i human ->
         let x_h, y_h = Human.pos !human in
         let w, h = Human.size !human in
-        go (Sdl.render_copy ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h)) renderer human_texture);
+        go (Sdl.render_copy ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h)) !renderer human_texture);
         render_rect ~x:x_h ~y:y_h ~w ~h;
         (* experimental *)
         if float 1. > 0.5 then
@@ -248,7 +252,7 @@ let main () =
           Human.move human map
             (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
       humans;
-    Sdl.render_present renderer;
+    Sdl.render_present !renderer;
     mainloop e
   in
 
