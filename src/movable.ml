@@ -36,8 +36,8 @@ module Camel : Movable = struct
 
   let init map image =
     (* let default_state = { has_2x = false } in state := default_state;*)
-    let pos, size = camel_ctx map in
-    { pos; size; src = image; speed = fst size }
+    let pos, size, speed = camel_ctx map in
+    { pos; size; src = image; speed }
 
   (* depending on the camel state, move may have different side effects on [t]
      and on [map]. For example, we may mutate [!t]'s position or speed with an
@@ -70,8 +70,8 @@ module Human : Movable = struct
     (* let default_state = { is_scared = false } in state := default_state;*)
     incr index;
     (* take the mod 4 of index to get positioning of humans *)
-    let pos, size = human_ctx map (!index mod 4) in
-    { pos; size; src = image; speed = fst size }
+    let pos, size, speed = human_ctx map (!index mod 4) in
+    { pos; size; src = image; speed }
 
   (* depending on the human state, move may have different side effects on [t]
      and on [map] *)

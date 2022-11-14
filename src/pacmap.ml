@@ -33,7 +33,6 @@ let to_canvas (x, y) = ((x - !shift_x) / !scale_x, (y - !shift_y) / !scale_y)
 (* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
    Empty + Update game state before clearing depending on item and
    camel_state *)
-
 let find_move map p_from p_new =
   let size = fst map.size in
   let bound v = if v < 0 then v + size else if v >= size then v - size else v in
@@ -44,12 +43,12 @@ let find_move map p_from p_new =
   | Floor space -> (to_sdl_area (x, y), space)
 
 let valid_xy s (x, y) = min x y >= 0 && max x y < s
-let camel_ctx t = (t.start, (!scale_x, !scale_y))
+let camel_ctx t = (t.start, (!scale_x, !scale_y), !scale_x)
 
 let human_ctx t ind =
   let w, h = t.size in
   (* set initial position of humans to the center of map *)
-  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, (!scale_x, !scale_y))
+  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, (!scale_x, !scale_y), !scale_x)
 
 module Point = struct
   type t = int * int

@@ -116,6 +116,9 @@ let main () =
   in
 
   let renderer = go (Sdl.create_renderer win) in
+
+  (* TODO @Yaqi: camel texture has a black background while human does not; try
+     to fix that bug *)
   let camel_texture =
     let camel_surface = Tsdl_image.Image.load (Camel.src !camel_ref) in
     let t = create_texture_from_surface renderer (go camel_surface) in
@@ -136,16 +139,16 @@ let main () =
   Draw.set_color renderer bg;
   go (Sdl.render_clear renderer);
 
+  (* TODO: calibrate speed (change fps to 120) by allowing each move to not be
+     an entire unit *)
   (* let show_gui = ref true in *)
   make_sdl_windows ~windows:[ win ] !board;
   let start_fps, fps = Time.adaptive_fps 10 in
 
   let camel_dir_ref = ref (0, 0) in
-  let auto = ref true in
 
   (* TODO: add trailing effect behind camel (can be an effect )*)
-  (* TODO: maybe let the camel always be going in a direction, which can be
-     changed on key input *)
+  (* TODO: fix error with delayed arrow movement *)
   let rec mainloop e =
     let camel = !camel_ref in
     let camel_dir = !camel_dir_ref in
@@ -153,11 +156,9 @@ let main () =
     let map = !map_ref in
     let camel_speed = Camel.speed camel in
     let human_speed = Human.speed !(List.nth humans 0) in
-    let move_check dir =
-      (* if camel_dir = dir then auto := true else begin auto := false;
-         Camel.move camel_ref map dir; camel_dir_ref := dir end *)
-      camel_dir_ref := dir
-    in
+    let move_check dir = camel_dir_ref := dir in
+
+    (* if paused, then disable the below internally, not the whole match body *)
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
@@ -170,6 +171,7 @@ let main () =
          move_check (-camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
          print_endline "game start";
+         camel_dir_ref := (0, 0);
          let change_board () = board := make_game_board in
          (* let th : Thread.t = Thread.create Sync.push change_board in *)
          let th : Thread.t = Thread.create change_board () in
@@ -182,12 +184,12 @@ let main () =
        when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
        ->
          print_endline "restart";
-         reset_game (int 10000) (* go (render_copy renderer camel_texture) *)
+         camel_dir_ref := (0, 0);
+         reset_game (int 10000)
      | _ -> ());
 
-    (* TODO: implement auto camel movement in the direction of !camel_dir? *)
     Draw.set_color renderer bg;
-    if !auto then Camel.move camel_ref map camel_dir;
+    Camel.move camel_ref map camel_dir;
 
     go (Sdl.render_clear renderer);
     Draw.set_color renderer (100, 200, 200, 255);

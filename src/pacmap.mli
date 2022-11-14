@@ -16,11 +16,13 @@ type space =
     Updates game state. *)
 val find_move : t -> int * int -> int * int -> (int * int) * space
 
-(** [camel_ctx t] is the starting point and size of the camel in pacmap [t] *)
-val camel_ctx : t -> (int * int) * (int * int)
+(** [camel_ctx t] is the starting point, size, and speed of the camel in pacmap
+    [t] *)
+val camel_ctx : t -> (int * int) * (int * int) * int
 
-(** [human_ctx t] is the starting point and size of a human in pacmap [t] *)
-val human_ctx : t -> int -> (int * int) * (int * int)
+(** [human_ctx t] is the starting point, size, and speed of a human in pacmap
+    [t] *)
+val human_ctx : t -> int -> (int * int) * (int * int) * int
 
 (** [gen_map s a] is a generated seeded random pacmap dependent on seed [s] and
     sdl_area [a] Requires [t]>=0*)
