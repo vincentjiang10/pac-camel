@@ -22,7 +22,7 @@ let pos t = t.pos
 let update_pos t p = t.pos <- p
 let speed t = t.speed
 let src t = t.src
-let size t = t.size
+let size t : int * int = t.size
 
 (* TODO @Vincent: make sure to implement wrap around *)
 let move t map (dir_x, dir_y) =

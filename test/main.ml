@@ -23,7 +23,7 @@ let sdl_area = W.get_sdl_area canvas
 let map_1 = gen_map 5 sdl_area
 
 (*test edge case where 0 is passed in (lowest value it can be)*)
-let map_2 = gen_map 0
+let map_2 = gen_map 0 sdl_area
 
 (*Create a camel to test the camel functions*)
 let camel_1 = Camel.("assets/images/camel-cartoon.png" |> init map_1)
@@ -34,6 +34,14 @@ let camel_tests =
   [
     ( "Testing that the camel has the same source as creation" >:: fun _ ->
       assert_equal "assets/images/camel-cartoon.png" (Camel.src camel_1) );
+    ( " Testing that the camel has a size of (0,0) when initially created so \
+       that it is ensured that the camel stays on the map \n\
+      \    at any given point at time"
+    >:: fun _ -> assert_equal (19, 19) (Camel.size camel_1) );
+    ( "Testing that the camel has a speed of 21 intially to make sure that there \n\
+      \    isn't an underlying bug with any future powerups of the camel's \
+       speed changing "
+    >:: fun _ -> assert_equal 19 (Camel.speed camel_1) );
   ]
 
 let gui_tests = []
