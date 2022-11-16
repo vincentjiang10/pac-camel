@@ -1,8 +1,9 @@
 open OUnit2
 open Game
+open Movable
 open Camel
-open Gui
 open Human
+open Gui
 open Item
 open Pacmap
 open State

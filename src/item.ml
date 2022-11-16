@@ -9,31 +9,37 @@ type t = {
 let period t = t.period
 let probability t = t.probabilty
 let src t = t.src
-let effect t = t.effect
 let animate t = t.animate
+let effect t = t.effect
+
+(* TODO: add small and big coins *)
 
 (* Power-up creation *)
 
-(* Doubles the value of coins earned *)
 let coinsItem () =
   { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
 
-(* Doubles speed *)
+(* TODO: fix problem with camel crossing at intersections *)
 let speedItem () =
   { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
 
-(* Show trajectory of humans (in their respective colors) *)
 let trajectoryItem () =
   { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
 
-(* Trails or places bomb/quicksand that stuns ghosts for a few seconds *)
 let sandItem () =
   { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
 
-(* Phase through walls *)
 let phaseItem () =
   { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
 
-(* Cactus (scares away humans) *)
 let cactusItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
+
+let teleportItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
+
+let dimItem () =
+  { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
+
+let lifeItem () =
   { probabilty = 0.01; period = 10; src = ""; effect = (); animate = () }
