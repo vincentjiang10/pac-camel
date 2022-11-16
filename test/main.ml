@@ -38,10 +38,12 @@ let camel_1_ref = ref camel_1
 let human_1_ref = ref human_1
 
 let x, y =
-  Camel.move camel_1_ref map_1 (0, 1);
+  Camel.move camel_1_ref map_1 (0, 0);
   Camel.pos !camel_1_ref
 
-let _ = print_endline (string_of_int y)
+let initial_pos_camel = Camel.pos !camel_1_ref
+let initial_pos_human = Human.pos !human_1_ref
+let _ = ()
 
 let movable_tests =
   [
@@ -119,6 +121,44 @@ let movable_tests =
       assert_equal (470, 470)
         (Human.move human_1_ref map_1 (0, 0);
          Human.pos !human_1_ref) );
+    ( "Testing that the position changes after moving the camel's ref version \
+       given map_1 \n\
+      \    and moving it once in the [50,1] direction updates the position to \
+       the same \n\
+      \      one it was previously at"
+    >:: fun _ ->
+      assert_equal (603, 603)
+        (Camel.move camel_1_ref map_1 (50, 1);
+         Camel.pos !camel_1_ref) );
+    ( "Property testing that after moving the camel that it should no longer \
+       be the same \n\
+      \    position as the initial position ebfore moving, this allows us to \
+       ensure that \n\
+      \    after moving [x,y] for any x in the naturals and y in the naturals \
+       that it is not [xi,yi] \n\
+      \    where xi is the initial x position and yi is the initial y position"
+    >:: fun _ ->
+      Camel.move camel_1_ref map_1 (103, 50);
+      assert_equal true (initial_pos_camel <> Camel.pos !camel_1_ref) );
+    ( "Testing that the position changes after moving the human's ref version \
+       given map_1 \n\
+      \    and moving it once in the [50,1] direction updates the position to \
+       the same \n\
+      \      one it was previously at"
+    >:: fun _ ->
+      assert_equal (470, 508)
+        (Human.move human_1_ref map_1 (0, 50);
+         Human.pos !human_1_ref) );
+    ( "Property testing that after moving the human that it should no longer \
+       be the same \n\
+      \    position as the initial position ebfore moving, this allows us to \
+       ensure that \n\
+      \    after moving [x,y] for any x in the naturals and y in the naturals \
+       that it is not [xi,yi] \n\
+      \    where xi is the initial x position and yi is the initial y position"
+    >:: fun _ ->
+      Human.move human_1_ref map_1 (103, 50);
+      assert_equal true (initial_pos_human <> Human.pos !human_1_ref) );
   ]
 
 let gui_tests = []
