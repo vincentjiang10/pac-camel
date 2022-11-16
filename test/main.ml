@@ -33,7 +33,15 @@ let camel_2 = Camel.("assets/images/camel-cartoon.png" |> init map_2)
 let human_2 = Human.("assets/images/human.png" |> init map_2)
 
 (*check that src is actually the same one*)
-let _ = print_endline (string_of_int (fst (Human.size human_2)))
+(* let _ = print_endline (string_of_int (fst (Human.size human_2)))*)
+let camel_1_ref = ref camel_1
+let human_1_ref = ref human_1
+
+let x, y =
+  Camel.move camel_1_ref map_1 (0, 1);
+  Camel.pos !camel_1_ref
+
+let _ = print_endline (string_of_int y)
 
 let movable_tests =
   [
@@ -93,6 +101,24 @@ let movable_tests =
        that the sizes\n\
       \    are scaled to fit on the map given the same sdl_area  "
     >:: fun _ -> assert_equal (19, 19) (Camel.size camel_2) );
+    ( "Testing that the position changes after moving the camel's ref version \
+       given map_1 \n\
+      \    and moving it once in the [0,0] direction updates the position to \
+       the same \n\
+      \      one it was previously at"
+    >:: fun _ ->
+      assert_equal (569, 611)
+        (Camel.move camel_1_ref map_1 (0, 0);
+         Camel.pos !camel_1_ref) );
+    ( "Testing that the position changes after moving the human's ref version \
+       given map_1 \n\
+      \    and moving it once in the [0,0] direction updates the position to \
+       the same \n\
+      \      one it was previously at"
+    >:: fun _ ->
+      assert_equal (470, 470)
+        (Human.move human_1_ref map_1 (0, 0);
+         Human.pos !human_1_ref) );
   ]
 
 let gui_tests = []
