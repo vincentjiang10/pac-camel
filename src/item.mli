@@ -7,19 +7,35 @@
 (** [t] represents an item in a game *)
 type t
 
-(** [probability] will output the probability of [t] showing up in a game *)
+type item =
+  | Coins
+  | Speed
+  | Traj
+  | Sand
+  | Phase
+  | Cactus
+  | Tele
+  | Dim
+  | Life
+
+(** [probability t] will output the probability of [t] showing up in a game *)
 val probability : t -> float
 
-(**[period] will output the duration of how long [t] will last for *)
+(** [period t] will output the duration of how long [t] will last for *)
 val period : t -> int
 
-(** [src] provides the image link of [t] *)
+(** [src t] provides the image link of [t] *)
 val src : t -> string
 
-(** [effect] corresponds to the effect of [t] *)
+(** [effect t] corresponds to the effect of [t] *)
 val effect : t -> unit
 
+(** ? *)
 val animate : t -> unit
+
+(** [itemType t] is the item type of t *)
+val itemType : t -> item
+
 (* TODO (once main graphics loop is implemented): implement an animation
    function for all items *)
 

@@ -4,10 +4,8 @@ open Pacmap
 open Movable
 open Camel
 open Human
-open Tsdl
 open Utils
 open Random
-open Sdl
 module W = Widget
 module L = Layout
 module T = Trigger
@@ -69,13 +67,6 @@ let rec human_inits acc n =
 
 let human_ref_lst = ref (human_inits [] 4)
 
-(* let reset_camel () = camel_ref := Camel.init !map_ref
-   "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.size
-   !camel_ref in let width = fst size in let height = snd size in W.sdl_area
-   ?w:width ?h:height ()); camel_area := W.get_sdl_area !camel_widget; camel_l
-   := let pos = pos !camel_ref in let x_pos = fst pos in let y_pos = snd pos in
-   L.resident ~x:x_pos ~y:y_pos !camel_widget *)
-
 let reset_map (seed : int) =
   (* reset canvas *)
   Sdl_area.clear sdl_area;
@@ -84,8 +75,14 @@ let reset_map (seed : int) =
   human_ref_lst := human_inits [] 4;
   draw_map sdl_area !map_ref
 
+let time_ref = ref 0
+let reset_time () = time_ref := Time.now ()
+
 (* sets up the game *)
-let reset_game seed = reset_map seed
+let reset_game seed =
+  reset_map seed;
+  reset_time ()
+
 let bg = (255, 255, 255, 255)
 
 let make_greeting_board =
@@ -106,7 +103,7 @@ let make_game_board =
 let board = ref make_greeting_board
 
 let main () =
-  let open Sdl in
+  let open Tsdl in
   Sys.catch_break true;
   go (Sdl.init Sdl.Init.video);
   let win =
@@ -121,7 +118,7 @@ let main () =
      to fix that bug *)
   let camel_texture =
     let camel_surface = Tsdl_image.Image.load (Camel.src !camel_ref) in
-    let t = create_texture_from_surface renderer (go camel_surface) in
+    let t = Sdl.create_texture_from_surface renderer (go camel_surface) in
     go t
   in
 
@@ -129,7 +126,7 @@ let main () =
     let human_surface =
       Tsdl_image.Image.load (Human.src !(List.hd !human_ref_lst))
     in
-    let t = create_texture_from_surface renderer (go human_surface) in
+    let t = Sdl.create_texture_from_surface renderer (go human_surface) in
     go t
   in
   (* very important: set blend mode: *)
@@ -228,8 +225,7 @@ let main () =
              ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h))
              renderer human_texture);
         render_rect ~x:x_h ~y:y_h ~w ~h;
-        (* experimental *)
-        if float 1. > 0.5 then
+        if Time.now () - !time_ref > (i * 10000) + 1000 then
           let scale k (x, y) = (k * x, k * y) in
           Human.move human map
             (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))

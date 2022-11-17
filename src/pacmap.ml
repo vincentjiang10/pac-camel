@@ -25,10 +25,14 @@ let shift_x = ref 0
 let shift_y = ref 0
 
 (* Converts a point on the canvas/gameboard to a point on sdl_area *)
-let to_sdl_area (x, y) = ((x * !scale_x) + !shift_x, (y * !scale_y) + !shift_y)
+let to_sdl_area (x, y) =
+  ( (x * !scale_x) + !shift_x - (!scale_x / 4),
+    (y * !scale_y) + !shift_y - (!scale_y / 4) )
 
 (* Converts a point on the sdl_area to a point on canvas/gameboard *)
-let to_canvas (x, y) = ((x - !shift_x) / !scale_x, (y - !shift_y) / !scale_y)
+let to_canvas (x, y) =
+  ( (x - !shift_x + (!scale_x / 4)) / !scale_x,
+    (y - !shift_y + (!scale_y / 4)) / !scale_y )
 
 (* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
    Empty + Update game state before clearing depending on item and
@@ -43,12 +47,17 @@ let find_move map p_from p_new =
   | Floor space -> (to_sdl_area (x, y), space)
 
 let valid_xy s (x, y) = min x y >= 0 && max x y < s
-let camel_ctx t = (t.start, (!scale_x, !scale_y), !scale_x)
+let float_scale n = n |> Int.to_float |> Float.mul 1.5 |> Float.to_int
+
+let camel_ctx t =
+  (t.start, (!scale_x |> float_scale, !scale_y |> float_scale), !scale_x)
 
 let human_ctx t ind =
   let w, h = t.size in
   (* set initial position of humans to the center of map *)
-  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, (!scale_x, !scale_y), !scale_x)
+  ( ((w / 2) - 2 + ind, h / 2) |> to_sdl_area,
+    (!scale_x |> float_scale, !scale_y |> float_scale),
+    !scale_x )
 
 module Point = struct
   type t = int * int
@@ -205,7 +214,7 @@ let populate_map data s =
           (fun (x_0, y_0) (x_1, y_1) -> dist (x_0, y_0) - dist (x_1, y_1))
           wb_list
       in
-      let len = 2 + (s / 20) + int 6 in
+      let len = 2 + (s / 20) + int 4 in
       add_n_walls wall_points len
     in
     (* generate more walls to improve map generation efficiency *)
@@ -242,46 +251,94 @@ let mirror_left_y data s =
     done
   done
 
-(* [!paths.(src_in).(dest_in)] is the shortest path length from point [src =
-   (x_s, y_s)] to point [dst = (x_d, y_d)], where [src_in = x_s * s + y_s],
-   [dst_in = x_d * s + y_d], and [s = Array.length !paths]. *)
+(*================================ Pathfinding ===============================*)
+
+module PointMap = Map.Make (Point)
+
+(* [!paths.(src_in).(dest_in)] is the unit direction (as a Point) to progress in
+   traversing from point [src = (x_s, y_s)] to point [dst = (x_d, y_d)], where
+   [src_in = x_s * s + y_s], [dst_in = x_d * s + y_d], and [s = Array.length
+   !paths]. *)
 let paths = ref [||]
+
+let rec pick_random_space data =
+  let len = Array.length data in
+  let x, y = (int 30, int 30) in
+  match data.(x).(y) with
+  | Wall -> pick_random_space data
+  | Floor _ ->
+      if
+        min x y <= 5
+        || max x y >= len - 6
+        || x > (len / 2) - 5
+           && x < (len / 2) + 5
+           && y > (len / 2) - 5
+           && y < (len / 2) + 5
+      then pick_random_space data
+      else (x, y)
 
 (* Precomputing path lengths on gen_map using BFS *)
 let precompute_paths data =
   let len = Array.length data in
-  paths := Array.make_matrix (len * len) (len * len) (0, 0)
-(* TODO: BFS search; after finding shortest path, fill out any i, j between the
-   src and dest indices *)
+  let to_ind (x, y) = (x * len) + y in
+  (* [bfs_trav] is the bfs traversal of [data] starting at [src]. Requires:
+     [src] is not a [Wall] *)
+  let bfs_trav src =
+    let src_ind = src |> to_ind in
+    (* for any point/node [dst], it is visited by the traversal with the
+       original source point at [src] if !paths.(src |> to_ind).(dst |> to_ind)
+       is not (0,0) *)
+    let check_node dir dst queue =
+      let dst_ind = dst |> to_ind in
+      let x, y = dst in
+      if
+        (dst_ind >= 0 && dst_ind < Array.length !paths)
+        && min x y >= 0
+        && max x y < Array.length data
+        && data.(fst dst).(snd dst) <> Wall
+        && !paths.(src_ind).(dst_ind) = (0, 0)
+      then begin
+        (* add to queue *)
+        Queue.add dst queue;
+        (* modify [!paths] *)
+        !paths.(src_ind).(dst_ind) <- dir
+      end
+    in
+    let queue = Queue.create () in
+    Queue.add src queue;
+    (* substitute for [true] to mark [src] visited *)
+    !paths.(src_ind).(src_ind) <- (0, 0);
+    while Queue.length queue <> 0 do
+      let x, y = Queue.pop queue in
+      (* finding adjacent nodes (that are spaces) *)
+      check_node (1, 0) (x - 1, y) queue;
+      check_node (-1, 0) (x + 1, y) queue;
+      check_node (0, 1) (x, y - 1) queue;
+      check_node (0, -1) (x, y + 1) queue
+    done
+  in
 
-(* TODO: use paths to find neighboring nodes having the least weight*)
+  paths := Array.make_matrix (len * len) (len * len) (0, 0);
+
+  for x = 0 to len - 1 do
+    for y = 0 to len - 1 do
+      (* if a src point is not a [Wall], then perform bfs traversal on that
+         point *)
+      if data.(x).(y) <> Wall then bfs_trav (x, y)
+    done
+  done
+
 let get_path_dir map src dst =
-  let src, dst = (src |> to_canvas, dst |> to_canvas) in
-  (* greedy choice substitute *)
-  let dirs = [ (0, 1); (1, 0); (0, -1); (-1, 0) ] in
-  let man_dist (x0, y0) (x1, y1) = abs (x1 - x0) + abs (y1 - y0) in
-  let sum (x0, y0) (x1, y1) = (x0 + x1, y0 + y1) in
-  let dirs =
-    List.sort
-      (fun dir0 dir1 ->
-        man_dist (sum src dir0) dst - man_dist (sum src dir1) dst)
-      dirs
-  in
-  let rec pick_space = function
-    | [] -> (0, 0)
-    | (x_dir, y_dir) :: t -> (
-        match map.data.(fst src + x_dir).(snd src + y_dir) with
-        | Wall -> pick_space t
-        | Floor _ -> (x_dir, y_dir))
-  in
-  if float 1. > 0.5 then pick_space dirs else List.nth dirs (int 4)
-(* let to_ind (x, y) = (x * Array.length !paths) + y in !paths.(src |>
-   to_ind).(dst |> to_ind) *)
+  let to_ind (x, y) = (x * Array.length map.data) + y in
+  (* TODO: test and fix *)
+  !paths.(dst |> to_canvas |> to_ind).(src |> to_canvas |> to_ind)
+
+(*============================================================================*)
 
 (* Creates a pacmap with random odd size *)
 let gen_map seed sdl_area =
   init seed;
-  let s = (2 * int 20) + 30 in
+  let s = (int 20 * 2) + 30 in
   let data = Array.make_matrix s s (Floor Empty) in
   empty wall_set;
   empty wall_boundary;
@@ -296,14 +353,7 @@ let gen_map seed sdl_area =
   scale_y := h_to / s;
   shift_x := w_to mod s / 2;
   shift_y := h_to mod s / 2;
-  let rec pick_random_space () =
-    let x, y = (int 30, int 30) in
-    match data.(x).(y) with
-    | Wall -> pick_random_space ()
-    | Floor _ ->
-        if min x y <= 5 or max x y >= s - 6 then pick_random_space () else (x, y)
-  in
-  let start = () |> pick_random_space |> to_sdl_area in
+  let start = data |> pick_random_space |> to_sdl_area in
   { data; start; size = (s, s) }
 
 (* mutate map data to include a random item at a Floor cell *)
@@ -339,7 +389,10 @@ let draw_wall map sdl_area (x, y) =
   let w_4, h_4 = (w / 4, h / 4) in
   let w_2, h_2 = (w_2 + 1, h_2 + 1) in
   let draw_grey_rect = draw_rect sdl_area grey in
-  if top then draw_grey_rect w_2 h_2 (x_0 + w_4, y_0);
+  if top then begin
+    draw_grey_rect w_2 h_2 (x_0 + w_4, y_0);
+    draw_grey_rect w_2 h_2 (x_0 + w_4, y_0)
+  end;
   if right then draw_grey_rect w_2 h_2 (x_0 + w_2, y_0 + h_4);
   if bottom then draw_grey_rect w_2 h_2 (x_0 + w_4, y_0 + h_2);
   if left then draw_grey_rect w_2 h_2 (x_0, y_0 + h_4)

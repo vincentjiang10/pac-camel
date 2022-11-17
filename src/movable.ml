@@ -1,4 +1,6 @@
 open Pacmap
+open Item
+open State
 
 module type Movable = sig
   type t
@@ -50,7 +52,21 @@ module Camel : Movable = struct
     let p_new, space = find_move map (x, y) p in
     update_pos !t p_new;
     match space with
-    | Mass item -> ()
+    | Mass item -> begin
+        effect item;
+        (* TODO: add possible changes due to items to game state (State.ml),
+           camel, and humans *)
+        match itemType item with
+        | Coins -> ()
+        | Speed -> ()
+        | Traj -> ()
+        | Sand -> ()
+        | Phase -> ()
+        | Cactus -> ()
+        | Tele -> ()
+        | Dim -> ()
+        | Life -> ()
+      end
     | Empty -> ()
 end
 
