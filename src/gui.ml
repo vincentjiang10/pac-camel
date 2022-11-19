@@ -132,8 +132,6 @@ let main () =
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
 
-  go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none);
-  Draw.set_color renderer bg;
   go (Sdl.render_clear renderer);
 
   (* TODO: calibrate speed (change fps to 120) by allowing each move to not be
@@ -195,10 +193,8 @@ let main () =
     (* replace render_fill_rect with rendering an image of a camel *)
     refresh_custom_windows !board;
 
-    let render_rect ~x ~y ~w ~h =
-      go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)))
-    in
-    render_rect ~x:x_c ~y:y_c ~w ~h;
+    (* let render_rect ~x ~y ~w ~h = go (Sdl.render_fill_rect renderer (Some
+       (Sdl.Rect.create ~x ~y ~w ~h))) in render_rect ~x:x_c ~y:y_c ~w ~h; *)
 
     (* human rendering *)
     Draw.set_color renderer (200, 100, 200, 255);
@@ -224,7 +220,7 @@ let main () =
           (Sdl.render_copy
              ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h))
              renderer human_texture);
-        render_rect ~x:x_h ~y:y_h ~w ~h;
+        (* render_rect ~x:x_h ~y:y_h ~w ~h; *)
         if Time.now () - !time_ref > (i * 10000) + 1000 then
           let scale k (x, y) = (k * x, k * y) in
           Human.move human map
