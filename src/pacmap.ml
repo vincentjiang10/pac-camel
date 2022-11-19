@@ -329,9 +329,25 @@ let precompute_paths data =
   done
 
 let get_path_dir map src dst =
+  (* approximate position of dst *)
+  let len = fst map.size in
+  let pos_invert x = if float 1. > 0.5 then x else ~-x in
+  let bound x = if x >= len then len - 1 else if x < 0 then 0 else x in
+  let apply f (x, y) = (f x, f y) in
+  let spread man_dist (x, y) =
+    let x_shift = if man_dist = 0 then 0 else int man_dist in
+    let y_shift = man_dist - x_shift in
+    let x_shift, y_shift = (x_shift, y_shift) |> apply pos_invert in
+    (x + x_shift, y + y_shift) |> apply bound
+  in
+  let man_dist (x0, y0) (x1, y1) = abs (x1 - x0) + abs (y1 - y0) in
   let to_ind (x, y) = (x * Array.length map.data) + y in
-  (* TODO: test and fix *)
-  !paths.(dst |> to_canvas |> to_ind).(src |> to_canvas |> to_ind)
+  let src, dst = apply to_canvas (src, dst) in
+  (* call on [spread] has parameter [man_dst] that is supplied an argument of
+     value less than the manhattan distance between [src] and [dst] (to approach
+     closer to [dst] from [src]) *)
+  let man_dist = man_dist src dst * 7 / 10 in
+  !paths.(dst |> spread man_dist |> to_ind).(src |> to_ind)
 
 (*============================================================================*)
 
