@@ -9,7 +9,7 @@ open Tsdl
 open Sdl
 open Item
 
-type camel_state = Camel.t
+type camel = Camel.t
 type human_state = Human.t
 
 type event =
@@ -27,14 +27,14 @@ type game_state =
 
 type state = {
   mutable game : game_state;
-  mutable camel : camel_state;
+  mutable camel : camel;
   mutable human : human_state ref list;
   mutable items : Item.t list;
   mutable map : Pacmap.t;
 }
 
 (** [init c h i] initializes a new game with c*)
-let init c h i m = { game = Inactive; camel = c; human = h; items = i; map = m }
+let init c h i m = { game = Active; camel = c; human = h; items = i; map = m }
 
 let next_state state sNext = state.game <- sNext
 let change_camel state new_camel = state.camel <- new_camel

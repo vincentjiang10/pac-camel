@@ -5,6 +5,11 @@ open Movable
 
 open Pacmap
 
+type event =
+  | Start
+  | Pause
+  | Camelmove of string
+
 type game_state =
   | Inactive
   | Initialize
@@ -22,13 +27,7 @@ val init : Camel.t -> Human.t ref list -> Item.t list -> Pacmap.t -> state
 (** [reset state camel human_lst item_lst map] reset the game with provided
     camel, huamns, and items on [map] *)
 val reset :
-  state ->
-  Camel.t ->
-  Camel.t ->
-  Human.t ref list ->
-  Item.t list ->
-  Pacmap.t ->
-  state
+  state -> Camel.t -> Human.t ref list -> Item.t list -> Pacmap.t -> unit
 
 val current_state : state -> game_state
 val next_state : state -> game_state -> unit

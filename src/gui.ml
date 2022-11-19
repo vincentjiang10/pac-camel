@@ -69,13 +69,7 @@ let rec human_inits acc n =
       (n - 1)
 
 let human_ref_lst = ref (human_inits [] 4)
-let game_state = GameState.init !camel_ref [] []
-(* let reset_camel () = camel_ref := Camel.init !map_ref
-   "assets/images/camel-cartoon.png"; (camel_widget := let size = Camel.size
-   !camel_ref in let width = fst size in let height = snd size in W.sdl_area
-   ?w:width ?h:height ()); camel_area := W.get_sdl_area !camel_widget; camel_l
-   := let pos = pos !camel_ref in let x_pos = fst pos in let y_pos = snd pos in
-   L.resident ~x:x_pos ~y:y_pos !camel_widget *)
+(* let game_state = GameState.init None [] [] !map_ref *)
 
 let reset_map (seed : int) =
   (* reset canvas *)
@@ -83,7 +77,8 @@ let reset_map (seed : int) =
   map_ref := gen_map seed sdl_area;
   camel_ref := Camel.init !map_ref "assets/images/camel-cartoon.png";
   human_ref_lst := human_inits [] 4;
-  next_state game_state Active;
+  (* GameState.init game_state (Some !camel_ref) !human_ref_lst; *)
+  (* next_state game_state Active; *)
   draw_map sdl_area !map_ref
 
 (* sets up the game *)
@@ -172,8 +167,8 @@ let main () =
          move_check (-camel_speed, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
          let change_board () =
-           board := make_game_board;
-           GameState.next_state game_state Active
+           board := make_game_board
+           (* GameState.next_state game_state Active *)
          in
 
          let th : Thread.t = Thread.create change_board () in
@@ -213,28 +208,27 @@ let main () =
 
     (* Camel and human rendering happens after fps so that they are on top of
        the map. *)
-    if GameState.current_state game_state = Active then begin
-      List.iteri
-        (fun i human ->
-          let x_h, y_h = Human.pos !human in
-          let w, h = Human.size !human in
-          go
-            (Sdl.render_copy
-               ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h))
-               renderer human_texture);
-          render_rect ~x:x_h ~y:y_h ~w ~h;
-          (* experimental *)
-          if float 1. > 0.5 then
-            let scale k (x, y) = (k * x, k * y) in
-            Human.move human map
-              (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
-        humans;
-      go
-        (Sdl.render_copy
-           ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
-           renderer camel_texture)
-    end
-    else ();
+    (* if GameState.current_state game_state = Active then begin *)
+    List.iteri
+      (fun i human ->
+        let x_h, y_h = Human.pos !human in
+        let w, h = Human.size !human in
+        go
+          (Sdl.render_copy
+             ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h))
+             renderer human_texture);
+        (* render_rect ~x:x_h ~y:y_h ~w ~h; *)
+        (* experimental *)
+        if float 1. > 0.5 then
+          let scale k (x, y) = (k * x, k * y) in
+          Human.move human map
+            (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
+      humans;
+    go
+      (Sdl.render_copy
+         ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
+         renderer camel_texture);
+    (* end else (); *)
     Sdl.render_present renderer;
     mainloop e
   in
