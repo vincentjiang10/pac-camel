@@ -271,6 +271,10 @@ let get_path_dir map src dst =
   let rec pick_space = function
     | [] -> (0, 0)
     | (x_dir, y_dir) :: t -> (
+        let x_pos = fst src + x_dir in
+        let y_pos = snd src + y_dir in
+        print_endline (string_of_int x_pos);
+        print_endline (string_of_int y_pos);
         match map.data.(fst src + x_dir).(snd src + y_dir) with
         | Wall -> pick_space t
         | Floor _ -> (x_dir, y_dir))

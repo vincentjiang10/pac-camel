@@ -6,7 +6,9 @@ open Human
 open Gui
 open Item
 open Pacmap
-open State
+
+(* open State *)
+open GameState
 open Bogue
 open Main
 open Tsdl
