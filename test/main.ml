@@ -39,6 +39,12 @@ let initial_pos_camel = Camel.pos !camel_1_ref
 let initial_pos_human = Human.pos !human_1_ref
 let helper = Pacmap.camel_ctx map_1
 let convert_to_string i s = s ^ " " ^ (i |> string_of_int)
+let add (x0, y0) (x1, y1) = (x0 + x1, y0 + y1)
+
+let string_of_point (x, y) =
+  "(" ^ string_of_int x ^ ", " ^ string_of_int y ^ ")"
+
+let comp_points (x0, y0) (x1, y1) = x0 = x1 && y0 = y1
 
 let helper_match = function
   | (x1, x2), (y1, y2), z ->
@@ -46,103 +52,100 @@ let helper_match = function
 
 let _ = helper |> helper_match
 let empty_fun () = ()
+let _ = Camel.move camel_1_ref map_1 (0, 0) empty_fun
+let pos0 = initial_pos_camel |> to_canvas
+let pos1 = Camel.pos !camel_1_ref |> to_canvas
+let _ = Camel.move camel_1_ref map_1 (1, 0) empty_fun
+let pos2 = Camel.pos !camel_1_ref |> to_canvas
 
 let movable_tests =
   [
-    ( "Testing that the camel has the same source as creation" >:: fun _ ->
-      assert_equal "assets/images/camel-cartoon.png" (Camel.src camel_1) );
-    ( " Testing that the camel has a size of (19,19) when initially created so \
-       that it is ensured that the camel stays on the map \n\
-      \    at any given point at time"
-    >:: fun _ -> assert_equal (28, 28) (Camel.size camel_1) );
-    ( "Testing that the camel has a speed of 19 intially to make sure that there \n\
-      \    isn't an underlying bug with any future powerups of the camel's \
-       speed changing "
-    >:: fun _ -> assert_equal 19 (Camel.speed camel_1) );
-    ( " Testing that a human has the same source as passed in when created and \
-       doesn't collide \n\
-      \    with the source image of the camel"
-    >:: fun _ -> assert_equal "assets/images/human.png" (Human.src human_1) );
-    ( " Testing that a human has a size of (19,19) intially to make sure that \
-       the intial size \n\
-      \    is within a range that can fit within a map "
-    >:: fun _ -> assert_equal (28, 28) (Human.size human_1) );
-    ( " Testing that a human has a speed of 19 initially to make sure that \
-       there isn't \n\
-      \   a bug that is generated when there are two Movable objects in the \
-       map at the same time \n\
-      \   that might affect the speed to change "
-    >:: fun _ -> assert_equal 19 (Human.speed human_1) );
-    ( "Testing that the initial pos is a valid tuple that is on the map, given \
-       we want it within the area of the sdl\n\
-      \  "
-    >:: fun _ -> assert_equal (291, 396) (Camel.pos camel_1) );
-    ( "Testing that the initial pos is a valid tuple that is on the map, given \
-       we \n\
-      \  want it within the area of the sdl"
-    >:: fun _ -> assert_equal (466, 466) (Human.pos human_1) );
-    ( " Testing that the start position for a differently generated map \
-       implies that \n\
-      \    the camel will start at a different position"
-    >:: fun _ -> assert_equal true (Camel.pos camel_2 <> initial_pos_camel) );
-    ( " Testing that the start position for a differently generated map \
-       implies that the \n\
-      \    human will start at a different position"
-    >:: fun _ -> assert_equal true (Human.pos human_2 <> initial_pos_human) );
-    ( "Testing that no matter what map that the speed of the human will be the \
-       same \n\
-      \    in order to ensure fairness"
-    >:: fun _ -> assert_equal 19 (Human.speed human_2) );
-    ( "Testing that no matter what map that the speed of the camel will be the \
-       same \n\
-      \    in order to ensure fairness"
-    >:: fun _ -> assert_equal 19 (Camel.speed camel_2) );
-    ( "Testing that the size will be the same on a different map to ensure \
-       that the sizes\n\
-      \    are scaled to fit on the map given the same sdl_area  "
-    >:: fun _ -> assert_equal (28, 28) (Human.size human_2) );
-    ( "Testing that the size will be the same on a different map to ensure \
-       that the sizes\n\
-      \    are scaled to fit on the map given the same sdl_area  "
-    >:: fun _ -> assert_equal (28, 28) (Camel.size camel_2) );
-    ( "Testing that the position changes after moving the human's ref version \
-       given map_1 \n\
-      \    and moving it once in the [0,0] direction updates the position to \
-       the same \n\
-      \      one it was previously at"
+    (* ( "Testing that the camel has the same source as creation" >:: fun _ ->
+       assert_equal "assets/images/camel-cartoon.png" (Camel.src camel_1) ); ( "
+       Testing that the camel has a size of (19,19) when initially created so \
+       that it is ensured that the camel stays on the map \n\ \ at any given
+       point at time" >:: fun _ -> assert_equal (28, 28) (Camel.size camel_1) );
+       ( "Testing that the camel has a speed of 19 intially to make sure that
+       there \n\ \ isn't an underlying bug with any future powerups of the
+       camel's \ speed changing " >:: fun _ -> assert_equal 19 (Camel.speed
+       camel_1) ); ( " Testing that a human has the same source as passed in
+       when created and \ doesn't collide \n\ \ with the source image of the
+       camel" >:: fun _ -> assert_equal "assets/images/human.png" (Human.src
+       human_1) ); ( " Testing that a human has a size of (19,19) intially to
+       make sure that \ the intial size \n\ \ is within a range that can fit
+       within a map " >:: fun _ -> assert_equal (28, 28) (Human.size human_1) );
+       ( " Testing that a human has a speed of 19 initially to make sure that \
+       there isn't \n\ \ a bug that is generated when there are two Movable
+       objects in the \ map at the same time \n\ \ that might affect the speed
+       to change " >:: fun _ -> assert_equal 19 (Human.speed human_1) ); (
+       "Testing that the initial pos is a valid tuple that is on the map, given
+       \ we want it within the area of the sdl\n\ \ " >:: fun _ -> assert_equal
+       (291, 396) (Camel.pos camel_1) ); ( "Testing that the initial pos is a
+       valid tuple that is on the map, given \ we \n\ \ want it within the area
+       of the sdl" >:: fun _ -> assert_equal (466, 466) (Human.pos human_1) ); (
+       " Testing that the start position for a differently generated map \
+       implies that \n\ \ the camel will start at a different position" >:: fun
+       _ -> assert_equal true (Camel.pos camel_2 <> initial_pos_camel) ); ( "
+       Testing that the start position for a differently generated map \ implies
+       that the \n\ \ human will start at a different position" >:: fun _ ->
+       assert_equal true (Human.pos human_2 <> initial_pos_human) ); ( "Testing
+       that no matter what map that the speed of the human will be the \ same
+       \n\ \ in order to ensure fairness" >:: fun _ -> assert_equal 19
+       (Human.speed human_2) ); ( "Testing that no matter what map that the
+       speed of the camel will be the \ same \n\ \ in order to ensure fairness"
+       >:: fun _ -> assert_equal 19 (Camel.speed camel_2) ); ( "Testing that the
+       size will be the same on a different map to ensure \ that the sizes\n\ \
+       are scaled to fit on the map given the same sdl_area " >:: fun _ ->
+       assert_equal (28, 28) (Human.size human_2) ); ( "Testing that the size
+       will be the same on a different map to ensure \ that the sizes\n\ \ are
+       scaled to fit on the map given the same sdl_area " >:: fun _ ->
+       assert_equal (28, 28) (Camel.size camel_2) ); ( "Testing that the
+       position changes after moving the human's ref version \ given map_1 \n\ \
+       and moving it once in the [0,0] direction updates the position to \ the
+       same \n\ \ one it was previously at" >:: fun _ -> assert_equal
+       initial_pos_human (Human.move human_1_ref map_1 (0, 0) (fun () -> ());
+       Human.pos !human_1_ref) ); ( "Property testing that after moving the
+       camel that it should no longer \ be the same \n\ \ position as the
+       initial position ebfore moving, this allows us to \ ensure that \n\ \
+       after moving [x,y] for any x in the naturals and y in the naturals \ that
+       it is not [xi,yi] \n\ \ where xi is the initial x position and yi is the
+       initial y position" >:: fun _ -> Camel.move camel_1_ref map_1 (103, 50)
+       empty_fun; assert_equal true (initial_pos_camel <> Camel.pos
+       !camel_1_ref) ); ( "Testing that the position changes after moving the
+       human's ref version \ given map_1 \n\ \ and moving it once in the [0,50]
+       direction updates the position to \ the same \n\ \ one it was previously
+       at" >:: fun _ -> assert_equal (466, 504) (Human.move human_1_ref map_1
+       (0, 50) empty_fun; Human.pos !human_1_ref) ); ( "Property testing that
+       after moving the human that it should no longer \ be the same \n\ \
+       position as the initial position ebfore moving, this allows us to \
+       ensure that \n\ \ after moving [x,y] for any x in the naturals and y in
+       the naturals \ that it is not [xi,yi] \n\ \ where xi is the initial x
+       position and yi is the initial y position" >:: fun _ -> Human.move
+       human_1_ref map_1 (103, 50) empty_fun; assert_equal true
+       (initial_pos_human <> Human.pos !human_1_ref) );*)
+    ( "sample test 1: camel position on canvas after move with dir = (0,0) \
+       does not change"
     >:: fun _ ->
-      assert_equal initial_pos_human
-        (Human.move human_1_ref map_1 (0, 0) (fun () -> ());
-         Human.pos !human_1_ref) );
-    ( "Property testing that after moving the camel that it should no longer \
-       be the same \n\
-      \    position as the initial position ebfore moving, this allows us to \
-       ensure that \n\
-      \    after moving [x,y] for any x in the naturals and y in the naturals \
-       that it is not [xi,yi] \n\
-      \    where xi is the initial x position and yi is the initial y position"
+      assert_equal true
+        (* NOTE: coordinates on sdl_area are converted to coordinates on the
+           canvas before comparison *)
+        (comp_points pos0 pos1) );
+    ( "sample test 2: camel position on canvas after move with dir = (1,0) \
+       will change (as long as there is no way in the direction (1,0) from the \
+       current camel position)"
     >:: fun _ ->
-      Camel.move camel_1_ref map_1 (103, 50) empty_fun;
-      assert_equal true (initial_pos_camel <> Camel.pos !camel_1_ref) );
-    ( "Testing that the position changes after moving the human's ref version \
-       given map_1 \n\
-      \    and moving it once in the [0,50] direction updates the position to \
-       the same \n\
-      \      one it was previously at"
+      assert_equal false
+        (* NOTE: coordinates on sdl_area are converted to coordinates on the
+           canvas before comparison *)
+        (comp_points pos0 pos2) );
+    ( "sample test 3: same as sample test 2, but testing positions directly. \
+       Note: the Camel.move from sample test 2 has already changed position of \
+       camel, so no need to call it again. "
     >:: fun _ ->
-      assert_equal (466, 504)
-        (Human.move human_1_ref map_1 (0, 50) empty_fun;
-         Human.pos !human_1_ref) );
-    ( "Property testing that after moving the human that it should no longer \
-       be the same \n\
-      \    position as the initial position ebfore moving, this allows us to \
-       ensure that \n\
-      \    after moving [x,y] for any x in the naturals and y in the naturals \
-       that it is not [xi,yi] \n\
-      \    where xi is the initial x position and yi is the initial y position"
-    >:: fun _ ->
-      Human.move human_1_ref map_1 (103, 50) empty_fun;
-      assert_equal true (initial_pos_human <> Human.pos !human_1_ref) );
+      assert_equal true
+        (* NOTE: coordinates on sdl_area are converted to coordinates on the
+           canvas before comparison *)
+        (pos0 |> add (1, 0) |> comp_points pos2) );
   ]
 
 let gui_tests = []
