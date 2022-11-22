@@ -24,24 +24,33 @@ let scale_y = ref 0
 let shift_x = ref 0
 let shift_y = ref 0
 
-(* Converts a point on the canvas/gameboard to a point on sdl_area *)
 let to_sdl_area (x, y) =
   ( (x * !scale_x) + !shift_x - (!scale_x / 4),
     (y * !scale_y) + !shift_y - (!scale_y / 4) )
 
-(* Converts a point on the sdl_area to a point on canvas/gameboard *)
 let to_canvas (x, y) =
   ( (x - !shift_x + (!scale_x / 4)) / !scale_x,
     (y - !shift_y + (!scale_y / 4)) / !scale_y )
 
+let apply f (x, y) = (f x, f y)
+
+let string_of_point (x, y) =
+  "(" ^ string_of_int x ^ ", " ^ string_of_int y ^ ")"
+
 (* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
    Empty + Update game state before clearing depending on item and
    camel_state *)
-let find_move map p_from p_new =
+(* TODO: two problems. 1.) what is considered the present square and the square
+   to move to (sol: checking for obstacles along two squares instead of one. 2.)
+   Problem with moving getting to close to walls [for both, implement a ceiling
+   operation ] *)
+let find_move map p_from dir =
+  (* TODO: rewrite *)
   let size = fst map.size in
   let bound v = if v < 0 then v + size else if v >= size then v - size else v in
-  let x, y = to_canvas p_new in
-  let x, y = (bound x, bound y) in
+  let add (x0, y0) (x1, y1) = (x0 + x1, y0 + y1) in
+  let p_to = dir |> apply (( * ) !scale_x) |> add p_from in
+  let x, y = p_to |> to_canvas |> apply bound in
   match map.data.(x).(y) with
   | Wall -> (p_from, Empty)
   | Floor space -> (to_sdl_area (x, y), space)
@@ -50,14 +59,14 @@ let valid_xy s (x, y) = min x y >= 0 && max x y < s
 let float_scale n = n |> Int.to_float |> Float.mul 1.5 |> Float.to_int
 
 let camel_ctx t =
-  (t.start, (!scale_x |> float_scale, !scale_y |> float_scale), !scale_x)
+  (t.start, (!scale_x |> float_scale, !scale_y |> float_scale), 4)
 
 let human_ctx t ind =
   let w, h = t.size in
   (* set initial position of humans to the center of map *)
   ( ((w / 2) - 2 + ind, h / 2) |> to_sdl_area,
     (!scale_x |> float_scale, !scale_y |> float_scale),
-    !scale_x )
+    2 )
 
 module Point = struct
   type t = int * int
@@ -333,8 +342,8 @@ let get_path_dir map src dst =
   let len = fst map.size in
   let pos_invert x = if float 1. > 0.5 then x else ~-x in
   let bound x = if x >= len then len - 1 else if x < 0 then 0 else x in
-  let apply f (x, y) = (f x, f y) in
-  let spread man_dist (x, y) =
+  (* find a nearby loc that is a manhattan distance of [man_dist] to [(x, y)] *)
+  let rec spread man_dist (x, y) =
     let x_shift = if man_dist = 0 then 0 else int man_dist in
     let y_shift = man_dist - x_shift in
     let x_shift, y_shift = (x_shift, y_shift) |> apply pos_invert in
@@ -346,7 +355,7 @@ let get_path_dir map src dst =
   (* call on [spread] has parameter [man_dst] that is supplied an argument of
      value less than the manhattan distance between [src] and [dst] (to approach
      closer to [dst] from [src]) *)
-  let man_dist = man_dist src dst * 7 / 10 in
+  let man_dist = man_dist src dst / 2 in
   !paths.(dst |> spread man_dist |> to_ind).(src |> to_ind)
 
 (*============================================================================*)

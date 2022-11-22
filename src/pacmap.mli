@@ -11,9 +11,9 @@ type space =
   | Empty
   | Mass of Item.t
 
-(** [find_move t p1 p2] is a pair with the updated point of attempting to move
-    to point [p2] from point [p1] in pacmap [t] along with the item at [p2].
-    Updates game state. *)
+(** [find_move t p1 dir] is a pair with the updated point of attempting to move
+    in direction [dir] from point [p1] in pacmap [t] along with the item at
+    [p2]. Updates game state. *)
 val find_move : t -> int * int -> int * int -> (int * int) * space
 
 (** [camel_ctx t] is the starting point, size, and speed of the camel in pacmap
@@ -37,3 +37,11 @@ val draw_map : Bogue.Sdl_area.t -> t -> unit
 (** [get_path_dir t src dst] is a direction unit vector as a point to proceed
     from [src] to [dst] without crossing a wall in map [t] *)
 val get_path_dir : t -> int * int -> int * int -> int * int
+
+(** [to_sdl_area p] converts a point [p] on the canvas/gameboard to a point on
+    sdl_area *)
+val to_sdl_area : int * int -> int * int
+
+(** [to_canvas p] converts a point [p] on the sdl_area to a point on
+    canvas/gameboard *)
+val to_canvas : int * int -> int * int

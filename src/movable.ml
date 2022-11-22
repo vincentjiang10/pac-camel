@@ -9,7 +9,7 @@ module type Movable = sig
   val speed : t -> int
   val src : t -> string
   val size : t -> int * int
-  val move : t ref -> Pacmap.t -> int * int -> unit
+  val move : t ref -> Pacmap.t -> int * int -> (unit -> unit) -> unit
   val init : Pacmap.t -> string -> t
 end
 
@@ -26,6 +26,23 @@ module MovableCommon = struct
   let speed t = t.speed
   let src t = t.src
   let size t = t.size
+
+  let tween (x_from, y_from) (x_to, y_to) t render =
+    let apply f (x, y) = (f x, f y) in
+    let diff = (x_to - x_from, y_to - y_from) |> apply float_of_int in
+    let numRenders = 100 in
+    for i = 1 to numRenders do
+      let scale = float_of_int i /. float_of_int numRenders in
+      let x_diff, y_diff = diff |> apply (( *. ) scale) in
+      (* rounds to the nearest int pair *)
+      let p_update =
+        (float_of_int x_from +. x_diff, float_of_int y_from +. y_diff)
+        |> apply int_of_float
+      in
+      update_pos !t p_update;
+      render ()
+    done;
+    update_pos !t (x_to, y_to)
 end
 
 module Camel : Movable = struct
@@ -46,11 +63,10 @@ module Camel : Movable = struct
      item *)
   (* TODO: may need to take in a list of references (human references); Reason
      being a few items might affect both camels and humans *)
-  let move t map (dir_x, dir_y) =
-    let x, y = !t.pos in
-    let p = (x + dir_x, y + dir_y) in
-    let p_new, space = find_move map (x, y) p in
-    update_pos !t p_new;
+  let move t map dir render =
+    let p_curr = !t.pos in
+    let p_new, space = find_move map p_curr dir in
+    tween p_curr p_new t render;
     match space with
     | Mass item -> begin
         effect item;
@@ -91,9 +107,8 @@ module Human : Movable = struct
 
   (* depending on the human state, move may have different side effects on [t]
      and on [map] *)
-  let move t map (dir_x, dir_y) =
-    let x, y = !t.pos in
-    let p = (x + dir_x, y + dir_y) in
-    let p_new, item = find_move map (x, y) p in
-    update_pos !t p_new
+  let move t map dir render =
+    let p_curr = !t.pos in
+    let p_new, item = find_move map p_curr dir in
+    tween p_curr p_new t render
 end

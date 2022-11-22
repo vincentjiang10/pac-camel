@@ -45,6 +45,7 @@ let helper_match = function
       print_endline (List.fold_right convert_to_string [ x1; x2; y1; y2; z ] "")
 
 let _ = helper |> helper_match
+let empty_fun () = ()
 
 let movable_tests =
   [
@@ -111,7 +112,7 @@ let movable_tests =
       \      one it was previously at"
     >:: fun _ ->
       assert_equal initial_pos_human
-        (Human.move human_1_ref map_1 (0, 0);
+        (Human.move human_1_ref map_1 (0, 0) (fun () -> ());
          Human.pos !human_1_ref) );
     ( "Property testing that after moving the camel that it should no longer \
        be the same \n\
@@ -121,7 +122,7 @@ let movable_tests =
        that it is not [xi,yi] \n\
       \    where xi is the initial x position and yi is the initial y position"
     >:: fun _ ->
-      Camel.move camel_1_ref map_1 (103, 50);
+      Camel.move camel_1_ref map_1 (103, 50) empty_fun;
       assert_equal true (initial_pos_camel <> Camel.pos !camel_1_ref) );
     ( "Testing that the position changes after moving the human's ref version \
        given map_1 \n\
@@ -130,7 +131,7 @@ let movable_tests =
       \      one it was previously at"
     >:: fun _ ->
       assert_equal (466, 504)
-        (Human.move human_1_ref map_1 (0, 50);
+        (Human.move human_1_ref map_1 (0, 50) empty_fun;
          Human.pos !human_1_ref) );
     ( "Property testing that after moving the human that it should no longer \
        be the same \n\
@@ -140,7 +141,7 @@ let movable_tests =
        that it is not [xi,yi] \n\
       \    where xi is the initial x position and yi is the initial y position"
     >:: fun _ ->
-      Human.move human_1_ref map_1 (103, 50);
+      Human.move human_1_ref map_1 (103, 50) empty_fun;
       assert_equal true (initial_pos_human <> Human.pos !human_1_ref) );
   ]
 

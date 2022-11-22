@@ -77,11 +77,14 @@ let reset_map (seed : int) =
 
 let time_ref = ref 0
 let reset_time () = time_ref := Time.now ()
+let time_counter_ref = ref 0
+let reset_time_counter () = time_counter_ref := 0
 
 (* sets up the game *)
 let reset_game seed =
   reset_map seed;
-  reset_time ()
+  reset_time ();
+  reset_time_counter ()
 
 let bg = (255, 255, 255, 255)
 
@@ -134,11 +137,8 @@ let main () =
 
   go (Sdl.render_clear renderer);
 
-  (* TODO: calibrate speed (change fps to 120) by allowing each move to not be
-     an entire unit *)
-  (* let show_gui = ref true in *)
   make_sdl_windows ~windows:[ win ] !board;
-  let start_fps, fps = Time.adaptive_fps 10 in
+  let start_fps, fps = Time.adaptive_fps 300 in
 
   let camel_dir_ref = ref (0, 0) in
 
@@ -149,21 +149,19 @@ let main () =
     let camel_dir = !camel_dir_ref in
     let humans = !human_ref_lst in
     let map = !map_ref in
-    let camel_speed = Camel.speed camel in
-    let human_speed = Human.speed !(List.nth humans 0) in
     let move_check dir = camel_dir_ref := dir in
 
     (* if paused, then disable the below internally, not the whole match body *)
     (if Sdl.poll_event (Some e) then
      match Trigger.event_kind e with
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         move_check (0, -camel_speed)
+         move_check (0, -1)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         move_check (0, camel_speed)
+         move_check (0, 1)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-         move_check (camel_speed, 0)
+         move_check (1, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         move_check (-camel_speed, 0)
+         move_check (-1, 0)
      | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
          print_endline "game start";
          camel_dir_ref := (0, 0);
@@ -184,22 +182,16 @@ let main () =
      | _ -> ());
 
     Draw.set_color renderer bg;
-    Camel.move camel_ref map camel_dir;
+
+    (* update time counter *)
+    incr time_counter_ref;
 
     go (Sdl.render_clear renderer);
-    Draw.set_color renderer (100, 200, 200, 255);
     let x_c, y_c = Camel.pos camel in
     let w, h = Camel.size camel in
     (* replace render_fill_rect with rendering an image of a camel *)
     refresh_custom_windows !board;
 
-    (* let render_rect ~x ~y ~w ~h = go (Sdl.render_fill_rect renderer (Some
-       (Sdl.Rect.create ~x ~y ~w ~h))) in render_rect ~x:x_c ~y:y_c ~w ~h; *)
-
-    (* human rendering *)
-    Draw.set_color renderer (200, 100, 200, 255);
-
-    (* TODO: implement a timer that brings out the humans one at a time *)
     if
       not (one_step true (start_fps, fps) !board)
       (* one_step returns true if fps was executed *)
@@ -208,25 +200,47 @@ let main () =
 
     (* Camel and human rendering happens after fps so that they are on top of
        the map. *)
-    go
-      (Sdl.render_copy
-         ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
-         renderer camel_texture);
+
+    (* camel rendering logic *)
+    let render_camel () =
+      let x, y = Camel.pos camel in
+      go
+        (Sdl.render_copy
+           ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
+           renderer camel_texture)
+    in
+    render_camel ();
+
+    let camel_spd = Camel.speed camel in
+    let camel_period = (10 - camel_spd) * 2 in
+    if camel_spd <> 0 && !time_counter_ref mod camel_period = 0 then
+      Camel.move camel_ref map camel_dir (fun () -> ());
+
+    (* human rendering logic *)
     List.iteri
       (fun i human ->
+        (* abstract into a function, then use this in tween *)
         let x_h, y_h = Human.pos !human in
         let w, h = Human.size !human in
-        go
-          (Sdl.render_copy
-             ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h))
-             renderer human_texture);
-        (* render_rect ~x:x_h ~y:y_h ~w ~h; *)
-        if Time.now () - !time_ref > (i * 10000) + 1000 then
-          let scale k (x, y) = (k * x, k * y) in
-          Human.move human map
-            (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
+        let render_human () =
+          let x, y = Human.pos !human in
+          go
+            (Sdl.render_copy
+               ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
+               renderer human_texture)
+        in
+        let human_spd = Human.speed !human in
+        let human_period = (10 - human_spd) * 2 in
+        (if
+         human_spd <> 0
+         && !time_counter_ref mod human_period = 0
+         && Time.now () - !time_ref > (i * 10000) + 1000
+         && (x_h <> x_c || y_h <> y_c)
+        then
+         let dir = get_path_dir map (x_h, y_h) (x_c, y_c) in
+         Human.move human map dir render_human);
+        render_human ())
       humans;
-
     Sdl.render_present renderer;
     mainloop e
   in
