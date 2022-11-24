@@ -9,7 +9,7 @@ type t
 (** The type of values representing a space on the pacmap*)
 type space =
   | Empty
-  | Mass of Item.t
+  | Mass of Item.t ref
 
 (** [find_move t p1 dir] is a pair with the updated point of attempting to move
     in direction [dir] from point [p1] in pacmap [t] along with the item at
@@ -28,8 +28,13 @@ val human_ctx : t -> int -> (int * int) * (int * int) * int
     sdl_area [a] Requires [t]>=0*)
 val gen_map : int -> Bogue.Sdl_area.t -> t
 
-(** [add_item t] adds a random item to map t *)
-val add_item : t -> unit
+(** [add_item t] adds a random item to a random position in map referenece [t] *)
+val add_item : t ref -> unit
+
+(** [get_items t] is an association list containing the locations of items
+    (relative to the sdl_area coordinate plane) and the reference of the items
+    in map [t] *)
+val get_items : t -> ((int * int) * Item.t ref) list
 
 (** [draw_map s t] draws [t] to sdl_area [s] *)
 val draw_map : Bogue.Sdl_area.t -> t -> unit

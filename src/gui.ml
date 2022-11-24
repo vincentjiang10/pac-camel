@@ -5,6 +5,7 @@ open Movable
 open Camel
 open Human
 open Utils
+open State
 open Random
 module W = Widget
 module L = Layout
@@ -44,8 +45,6 @@ let start_button_l = L.resident ~x:30 ~y:35 ~w:250 ~h:2 start_button_w
  *  - (optional) a speed and number of humans setting (set a minimum and maximum)
  *)
 
-(* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
-   undesirable behavior; perhaps set a minimum window dimension *)
 let canvas = W.sdl_area ~w:800 ~h:800 ()
 let canvas_l = L.resident ~x:0 ~y:0 canvas
 let sdl_area = W.get_sdl_area canvas
@@ -71,20 +70,18 @@ let reset_map (seed : int) =
   (* reset canvas *)
   Sdl_area.clear sdl_area;
   map_ref := gen_map seed sdl_area;
-  camel_ref := Camel.init !map_ref "assets/images/camel-cartoon.png";
+  camel_ref := Camel.init !map_ref "assets/images/camel.png";
   human_ref_lst := human_inits [] 4;
   draw_map sdl_area !map_ref
 
 let time_ref = ref 0
 let reset_time () = time_ref := Time.now ()
-let time_counter_ref = ref 0
-let reset_time_counter () = time_counter_ref := 0
 
 (* sets up the game *)
 let reset_game seed =
   reset_map seed;
   reset_time ();
-  reset_time_counter ()
+  state_time := 0
 
 let bg = (255, 255, 255, 255)
 
@@ -184,7 +181,7 @@ let main () =
     Draw.set_color renderer bg;
 
     (* update time counter *)
-    incr time_counter_ref;
+    incr state_time;
 
     go (Sdl.render_clear renderer);
     let x_c, y_c = Camel.pos camel in
@@ -197,6 +194,22 @@ let main () =
       (* one_step returns true if fps was executed *)
     then fps ()
     else fps ();
+
+    (* item rendering *)
+    (* TODO @Yaqi: replace rectangles with images *)
+    let item_list = get_items map in
+    let new_rect (w, h) (x, y) = Sdl.Rect.create ~x ~y ~w ~h in
+    Draw.set_color renderer (100, 200, 200, 255);
+    List.iter
+      (fun ((x, y), item_ref) ->
+        let size = Item.size !item_ref in
+        let loc =
+          match Item.item_type !item_ref with
+          | SmallCoin -> (x + (fst size / 2), y + (snd size / 2))
+          | _ -> (x, y)
+        in
+        go (Sdl.render_fill_rect renderer (Some (new_rect size loc))) |> ignore)
+      item_list;
 
     (* Camel and human rendering happens after fps so that they are on top of
        the map. *)
@@ -212,8 +225,8 @@ let main () =
     render_camel ();
 
     let camel_spd = Camel.speed camel in
-    let camel_period = (10 - camel_spd) * 2 in
-    if camel_spd <> 0 && !time_counter_ref mod camel_period = 0 then
+    let camel_period = 30 / camel_spd in
+    if camel_spd <> 0 && !state_time mod camel_period = 0 then
       Camel.move camel_ref map camel_dir (fun () -> ());
 
     (* human rendering logic *)
@@ -230,10 +243,10 @@ let main () =
                renderer human_texture)
         in
         let human_spd = Human.speed !human in
-        let human_period = (10 - human_spd) * 2 in
+        let human_period = 30 / human_spd in
         (if
          human_spd <> 0
-         && !time_counter_ref mod human_period = 0
+         && !state_time mod human_period = 0
          && Time.now () - !time_ref > (i * 10000) + 1000
          && (x_h <> x_c || y_h <> y_c)
         then
@@ -241,6 +254,7 @@ let main () =
          Human.move human map dir render_human);
         render_human ())
       humans;
+
     Sdl.render_present renderer;
     mainloop e
   in
@@ -254,4 +268,6 @@ let main () =
 (* TODO @GUI: add to this function, which should initialize gui widgets (be
    prepared to take in functions that should be called based on widget
    events) *)
-let greeting = main ()
+let greeting =
+  reset_game (int 5000);
+  main ()

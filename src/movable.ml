@@ -68,11 +68,14 @@ module Camel : Movable = struct
     let p_new, space = find_move map p_curr dir in
     tween p_curr p_new t render;
     match space with
-    | Mass item -> begin
+    | Mass item_ref -> begin
+        let item = !item_ref in
         effect item;
         (* TODO: add possible changes due to items to game state (State.ml),
            camel, and humans *)
-        match itemType item with
+        match item_type item with
+        | BigCoin -> ()
+        | SmallCoin -> ()
         | Coins -> ()
         | Speed -> ()
         | Traj -> ()
@@ -109,6 +112,6 @@ module Human : Movable = struct
      and on [map] *)
   let move t map dir render =
     let p_curr = !t.pos in
-    let p_new, item = find_move map p_curr dir in
+    let p_new, item_ref = find_move map p_curr dir in
     tween p_curr p_new t render
 end

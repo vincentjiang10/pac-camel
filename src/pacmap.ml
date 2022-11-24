@@ -7,7 +7,7 @@ open Item
    with their respective animations *)
 type space =
   | Empty
-  | Mass of Item.t
+  | Mass of Item.t ref
 
 type cell =
   | Wall
@@ -15,6 +15,7 @@ type cell =
 
 type t = {
   data : cell array array;
+  item_list : ((int * int) * Item.t ref) list;
   start : int * int;
   size : int * int;
 }
@@ -56,17 +57,17 @@ let find_move map p_from dir =
   | Floor space -> (to_sdl_area (x, y), space)
 
 let valid_xy s (x, y) = min x y >= 0 && max x y < s
-let float_scale n = n |> Int.to_float |> Float.mul 1.5 |> Float.to_int
 
-let camel_ctx t =
-  (t.start, (!scale_x |> float_scale, !scale_y |> float_scale), 4)
+let unit_size () =
+  let float_scale n = n |> Int.to_float |> Float.mul 1.5 |> Float.to_int in
+  (!scale_x, !scale_y) |> apply float_scale
+
+let camel_ctx t = (t.start, unit_size (), 2)
 
 let human_ctx t ind =
   let w, h = t.size in
   (* set initial position of humans to the center of map *)
-  ( ((w / 2) - 2 + ind, h / 2) |> to_sdl_area,
-    (!scale_x |> float_scale, !scale_y |> float_scale),
-    2 )
+  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, unit_size (), 1)
 
 module Point = struct
   type t = int * int
@@ -200,7 +201,7 @@ let test_wb data =
   PointSet.iter (fun (x, y) -> data.(x).(y) <- Wall) !wall_boundary
 
 (* Takes in a starting map and populates it with tetris blocks representing
-   walls *)
+   walls. *)
 let populate_map data s =
   let boundary_walk () =
     let wb_list = PointSet.elements !wall_boundary in
@@ -241,15 +242,7 @@ let populate_map data s =
       gen_pieces ()
     end
   in
-  gen_pieces ();
-  (* adding initial items to map *)
-  for x = 0 to s - 1 do
-    for y = 0 to s - 1 do
-      if data.(x).(y) = Floor Empty then
-        data.(x) (* TODO @Vincent: run probability of item appearing on floor *).(
-        y) <- Floor Empty
-    done
-  done
+  gen_pieces ()
 
 (* Copies the right half of data over the y-axis to the left *)
 let mirror_left_y data s =
@@ -259,6 +252,26 @@ let mirror_left_y data s =
       data.(x).(y) <- data.(s - 1 - x).(y)
     done
   done
+
+(* Returns a list containing locations of initial items and the reference to the
+   items themselves *)
+let populate_items data s =
+  let item_list_ref = ref [] in
+  (* adding initial items to map *)
+  for x = 0 to s - 1 do
+    for y = 0 to s - 1 do
+      if data.(x).(y) = Floor Empty then
+        data.(x).(y) <-
+          Floor
+            (match gen_rand_item () with
+            | None -> Empty
+            | Some item_ref ->
+                let sdl_loc = to_sdl_area (x, y) in
+                item_list_ref := (sdl_loc, item_ref) :: !item_list_ref;
+                Mass item_ref)
+    done
+  done;
+  !item_list_ref
 
 (*================================ Pathfinding ===============================*)
 
@@ -355,7 +368,7 @@ let get_path_dir map src dst =
   (* call on [spread] has parameter [man_dst] that is supplied an argument of
      value less than the manhattan distance between [src] and [dst] (to approach
      closer to [dst] from [src]) *)
-  let man_dist = man_dist src dst / 2 in
+  let man_dist = man_dist src dst / 3 in
   !paths.(dst |> spread man_dist |> to_ind).(src |> to_ind)
 
 (*============================================================================*)
@@ -378,12 +391,19 @@ let gen_map seed sdl_area =
   scale_y := h_to / s;
   shift_x := w_to mod s / 2;
   shift_y := h_to mod s / 2;
+  unit_size () |> init_items;
   let start = data |> pick_random_space |> to_sdl_area in
-  { data; start; size = (s, s) }
+  let item_list = populate_items data s in
+  { data; start; size = (s, s); item_list }
 
-(* mutate map data to include a random item at a Floor cell *)
-let add_item map = ()
+(*================================== Item Logic ==============================*)
 
+(* mutate map data to include a random item at a Floor cell and add item and its
+   location to item_list *)
+let add_item map_ref = ()
+let get_items map = map.item_list
+
+(*================================== Drawing =================================*)
 let color_of_rgb c a =
   match c with
   | r, g, b -> (r, g, b, a)
