@@ -1,3 +1,5 @@
+open State
+
 type item =
   | BigCoin
   | SmallCoin
@@ -10,26 +12,29 @@ type item =
   | Tele
   | Dim
   | Life
+  | Time
 
 type t = {
   width : int;
   height : int;
   probabilty : float;
+  start_time : int;
   duration : int;
   src : string;
-  effect : unit;
+  effect : unit -> unit;
   animate : t ref -> unit;
   item_type : item;
 }
 
 let size t = (t.width, t.height)
+let startTime t = t.start_time
 let duration t = t.duration
 let probability t = t.probabilty
 let src t = t.src
 
 (* will depend on State.state_time *)
 let animate t = !t.animate t
-let effect t = t.effect
+let effect t = t.effect ()
 let item_type t = t.item_type
 let itemWidth = ref 0
 let itemHeight = ref 0
@@ -40,9 +45,11 @@ let commonItem () =
     width = !itemWidth;
     height = !itemHeight;
     probabilty = 0.0005;
-    duration = 10000;
+    start_time = !state_time;
+    (* 10 seconds *)
+    duration = 1000;
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Life;
   }
@@ -55,20 +62,23 @@ let bigCoin () =
   {
     commonItem with
     src = path ^ "coin.png";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = BigCoin;
   }
 
 (* small coin *)
 let smallCoin () =
+  let commonItem = commonItem () in
   {
+    commonItem with
     width = !itemWidth / 2;
     height = !itemHeight / 2;
     probabilty = 0.5;
-    duration = 60000;
+    (* 1 minute *)
+    duration = !state_end_time;
     src = path ^ "coin.png";
-    effect = ();
+    effect = (fun () -> incr state_score);
     animate = (fun item_ref -> ());
     item_type = SmallCoin;
   }
@@ -81,7 +91,7 @@ let coinsItem () =
   {
     commonItem with
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Coins;
   }
@@ -92,7 +102,7 @@ let speedItem () =
   {
     commonItem with
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Speed;
   }
@@ -103,7 +113,7 @@ let trajectoryItem () =
   {
     commonItem with
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Traj;
   }
@@ -114,7 +124,7 @@ let sandItem () =
   {
     commonItem with
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Sand;
   }
@@ -125,7 +135,7 @@ let phaseItem () =
   {
     commonItem with
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Phase;
   }
@@ -136,7 +146,7 @@ let cactusItem () =
   {
     commonItem with
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Cactus;
   }
@@ -150,7 +160,7 @@ let teleportItem () =
   {
     commonItem with
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Tele;
   }
@@ -161,7 +171,7 @@ let dimItem () =
   {
     commonItem with
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Dim;
   }
@@ -172,9 +182,20 @@ let lifeItem () =
   {
     commonItem with
     src = "";
-    effect = ();
+    effect = (fun () -> ());
     animate = (fun item_ref -> ());
     item_type = Life;
+  }
+
+(* gives additional time (10 seconds) until game round ends*)
+let timeItem () =
+  let commonItem = commonItem () in
+  {
+    commonItem with
+    src = "";
+    effect = (fun () -> state_time := !state_time + 1000);
+    animate = (fun item_ref -> ());
+    item_type = Time;
   }
 
 let init_items (w, h) =
@@ -194,6 +215,7 @@ let init_item_list : (unit -> t) list =
     teleportItem;
     dimItem;
     lifeItem;
+    timeItem;
   ]
 
 (* finds the increasing cumulative sums of the probabilities of the items in

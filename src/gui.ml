@@ -81,7 +81,8 @@ let reset_time () = time_ref := Time.now ()
 let reset_game seed =
   reset_map seed;
   reset_time ();
-  state_time := 0
+  state_time := 0;
+  state_score := 0
 
 let bg = (255, 255, 255, 255)
 
@@ -195,6 +196,12 @@ let main () =
     then fps ()
     else fps ();
 
+    (* testing *)
+    print_endline (string_of_int !state_time);
+
+    (* checks item expiration *)
+    check_item_expiration map_ref;
+
     (* item rendering *)
     (* TODO @Yaqi: replace rectangles with images *)
     let item_list = get_items map in
@@ -227,7 +234,7 @@ let main () =
     let camel_spd = Camel.speed camel in
     let camel_period = 30 / camel_spd in
     if camel_spd <> 0 && !state_time mod camel_period = 0 then
-      Camel.move camel_ref map camel_dir (fun () -> ());
+      Camel.move camel_ref map_ref camel_dir (fun () -> ());
 
     (* human rendering logic *)
     List.iteri
@@ -242,6 +249,8 @@ let main () =
                ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
                renderer human_texture)
         in
+        (* TODO: increase inversely proportional to number of coins (retrieved
+           from State) *)
         let human_spd = Human.speed !human in
         let human_period = 30 / human_spd in
         (if
@@ -251,7 +260,7 @@ let main () =
          && (x_h <> x_c || y_h <> y_c)
         then
          let dir = get_path_dir map (x_h, y_h) (x_c, y_c) in
-         Human.move human map dir render_human);
+         Human.move human map_ref dir render_human);
         render_human ())
       humans;
 

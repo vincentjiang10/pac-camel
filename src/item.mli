@@ -19,12 +19,16 @@ type item =
   | Tele
   | Dim
   | Life
+  | Time
 
 (** [probability t] is the probability of [t] showing up in a game *)
 val probability : t -> float
 
 (** [size t] is the size of [t] *)
 val size : t -> int * int
+
+(** [startTime t] is the time that the item is created *)
+val startTime : t -> int
 
 (** [duration t] will output the duration of how long [t] will last for *)
 val duration : t -> int

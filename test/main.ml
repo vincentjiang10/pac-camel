@@ -20,16 +20,16 @@ let canvas = W.sdl_area ~w:800 ~h:800 ()
 let sdl_area = W.get_sdl_area canvas
 
 (*create a new map to run tests on*)
-let map_1 = gen_map 5 sdl_area
+let map_1 = ref (gen_map 5 sdl_area)
 
 (*test edge case where 0 is passed in (lowest value it can be)*)
-let map_2 = gen_map 0 sdl_area
+let map_2 = ref (gen_map 0 sdl_area)
 
 (*Create a camel to test the camel functions*)
-let camel_1 = Camel.("assets/images/camel-cartoon.png" |> init map_1)
-let human_1 = Human.("assets/images/human.png" |> init map_1)
-let camel_2 = Camel.("assets/images/camel-cartoon.png" |> init map_2)
-let human_2 = Human.("assets/images/human.png" |> init map_2)
+let camel_1 = Camel.("assets/images/camel-cartoon.png" |> init !map_1)
+let human_1 = Human.("assets/images/human.png" |> init !map_1)
+let camel_2 = Camel.("assets/images/camel-cartoon.png" |> init !map_2)
+let human_2 = Human.("assets/images/human.png" |> init !map_2)
 
 (*check that src is actually the same one*)
 (* let _ = print_endline (string_of_int (fst (Human.size human_2)))*)
@@ -37,7 +37,7 @@ let camel_1_ref = ref camel_1
 let human_1_ref = ref human_1
 let initial_pos_camel = Camel.pos !camel_1_ref
 let initial_pos_human = Human.pos !human_1_ref
-let helper = Pacmap.camel_ctx map_1
+let helper = Pacmap.camel_ctx !map_1
 let convert_to_string i s = s ^ " " ^ (i |> string_of_int)
 let add (x0, y0) (x1, y1) = (x0 + x1, y0 + y1)
 
@@ -58,7 +58,7 @@ let _ = Camel.move camel_1_ref map_1 (1, 0) empty_fun
 let pos2 = Camel.pos !camel_1_ref |> to_canvas
 
 (*shadowing old camel_1*)
-let camel_1 = Camel.("assets/images/camel-cartoon.png" |> init map_1)
+let camel_1 = Camel.("assets/images/camel-cartoon.png" |> init !map_1)
 let camel_1_ref = ref camel_1
 let _ = Camel.move camel_1_ref map_1 (0, 1) empty_fun
 let pos3 = Camel.pos !camel_1_ref |> to_canvas

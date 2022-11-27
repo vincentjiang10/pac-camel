@@ -1,5 +1,6 @@
-open Random
+open State
 open Item
+open Random
 
 (* NOTE: the drawing of items will not be on sdl_area but on the window
    renderer *)
@@ -39,14 +40,8 @@ let string_of_point (x, y) =
   "(" ^ string_of_int x ^ ", " ^ string_of_int y ^ ")"
 
 (* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
-   Empty + Update game state before clearing depending on item and
-   camel_state *)
-(* TODO: two problems. 1.) what is considered the present square and the square
-   to move to (sol: checking for obstacles along two squares instead of one. 2.)
-   Problem with moving getting to close to walls [for both, implement a ceiling
-   operation ] *)
+   Empty *)
 let find_move map p_from dir =
-  (* TODO: rewrite *)
   let size = fst map.size in
   let bound v = if v < 0 then v + size else if v >= size then v - size else v in
   let add (x0, y0) (x1, y1) = (x0 + x1, y0 + y1) in
@@ -399,8 +394,36 @@ let gen_map seed sdl_area =
 (*================================== Item Logic ==============================*)
 
 (* mutate map data to include a random item at a Floor cell and add item and its
-   location to item_list *)
+   location to item_list; calls on Item.gen_rand_item *)
 let add_item map_ref = ()
+
+let remove_item map_ref loc =
+  let x, y = to_canvas loc in
+  let map = !map_ref in
+  (* remove item *)
+  map.data.(x).(y) <- Floor Empty;
+  let item_list = List.remove_assoc loc map.item_list in
+  map_ref := { map with item_list }
+
+let check_item_expiration map_ref =
+  let map = !map_ref in
+  (* iterates over item list *)
+  let item_list =
+    List.filter
+      (fun (sdl_loc, item_ref) ->
+        let item = !item_ref in
+        let time_elapsed = !state_time - startTime item in
+        let expired = time_elapsed < duration item in
+        if expired then begin
+          let x, y = to_canvas sdl_loc in
+          map.data.(x).(y) <- Floor Empty;
+          true
+        end
+        else false)
+      map.item_list
+  in
+  map_ref := { map with item_list }
+
 let get_items map = map.item_list
 
 (*================================== Drawing =================================*)

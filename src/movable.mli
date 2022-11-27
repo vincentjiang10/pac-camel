@@ -22,11 +22,11 @@ module type Movable = sig
 
   (** [move t m dir f] updates the object [!t]'s location and renderes it on the
       game board using [f] after attempting to move in the unit direction [dir]
-      in pacmap [m]. Example: if [!t]'s position is initially (12, 12) and a
-      move attempt of [dir] = (1, 0) in pacmap [m] is successful, then update
-      [!t]'s location to (13, 12). Also has item side effects: any item
+      in pacmap reference [m]. Example: if [!t]'s position is initially (12, 12)
+      and a move attempt of [dir] = (1, 0) in pacmap [m] is successful, then
+      update [!t]'s location to (13, 12). Also has item side effects: any item
       encountered by [t] may change the game state *)
-  val move : t ref -> Pacmap.t -> int * int -> (unit -> unit) -> unit
+  val move : t ref -> Pacmap.t ref -> int * int -> (unit -> unit) -> unit
 
   (** [init t s] is an the object with source image at [s] and dimensions,
       position, and speed depending on [t] *)

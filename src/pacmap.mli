@@ -31,6 +31,14 @@ val gen_map : int -> Bogue.Sdl_area.t -> t
 (** [add_item t] adds a random item to a random position in map referenece [t] *)
 val add_item : t ref -> unit
 
+(** [remove_item t p] removes the item at camel location [p] in map reference
+    [t] *)
+val remove_item : t ref -> int * int -> unit
+
+(** [check_item_expiration t_ref] removes expired items (items that have been on
+    the board longer than their expected durations) *)
+val check_item_expiration : t ref -> unit
+
 (** [get_items t] is an association list containing the locations of items
     (relative to the sdl_area coordinate plane) and the reference of the items
     in map [t] *)

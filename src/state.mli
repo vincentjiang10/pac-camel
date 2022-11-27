@@ -29,9 +29,11 @@ val state_escape : bool ref
 (*State_complete is true when the game is over.*)
 val state_complete : bool ref
 
+(* [!state_end_time] is the time until the game round ends *)
+val state_end_time : int ref
+
 (* [!state_time] is a counter for the current time *)
 val state_time : int ref
 
-(* [!state_num_coins] is the number of coins at a time in a game. Game round
-   ends (player wins) when [!state_num_coins] = 0 *)
-val state_num_coins : int ref
+(* [!state_score] is the score counter for the current game *)
+val state_score : int ref

@@ -9,7 +9,7 @@ module type Movable = sig
   val speed : t -> int
   val src : t -> string
   val size : t -> int * int
-  val move : t ref -> Pacmap.t -> int * int -> (unit -> unit) -> unit
+  val move : t ref -> Pacmap.t ref -> int * int -> (unit -> unit) -> unit
   val init : Pacmap.t -> string -> t
 end
 
@@ -63,7 +63,8 @@ module Camel : Movable = struct
      item *)
   (* TODO: may need to take in a list of references (human references); Reason
      being a few items might affect both camels and humans *)
-  let move t map dir render =
+  let move t map_ref dir render =
+    let map = !map_ref in
     let p_curr = !t.pos in
     let p_new, space = find_move map p_curr dir in
     tween p_curr p_new t render;
@@ -75,7 +76,9 @@ module Camel : Movable = struct
            camel, and humans *)
         match item_type item with
         | BigCoin -> ()
-        | SmallCoin -> ()
+        | SmallCoin ->
+            (* removes the coin at camel location in game board *)
+            remove_item map_ref p_new
         | Coins -> ()
         | Speed -> ()
         | Traj -> ()
@@ -85,6 +88,7 @@ module Camel : Movable = struct
         | Tele -> ()
         | Dim -> ()
         | Life -> ()
+        | Time -> ()
       end
     | Empty -> ()
 end
@@ -110,8 +114,8 @@ module Human : Movable = struct
 
   (* depending on the human state, move may have different side effects on [t]
      and on [map] *)
-  let move t map dir render =
+  let move t map_ref dir render =
     let p_curr = !t.pos in
-    let p_new, item_ref = find_move map p_curr dir in
+    let p_new, item_ref = find_move !map_ref p_curr dir in
     tween p_curr p_new t render
 end
