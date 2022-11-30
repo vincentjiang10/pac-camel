@@ -106,10 +106,9 @@ module Human : Movable = struct
   let index = ref 1
 
   let init map image =
-    (* let default_state = { is_scared = false } in state := default_state;*)
-    incr index;
     (* take the mod 4 of index to get positioning of humans *)
     let pos, size, speed = human_ctx map (!index mod 4) in
+    incr index;
     { pos; size; src = image; speed }
 
   (* depending on the human state, move may have different side effects on [t]
