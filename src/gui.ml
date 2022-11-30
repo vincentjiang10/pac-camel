@@ -77,12 +77,13 @@ let reset_map (seed : int) =
   map_ref := gen_map seed sdl_area;
   camel_ref := Camel.init !map_ref "assets/images/camel-cartoon.png";
   human_ref_lst := human_inits [] 4;
-  (* GameState.init game_state (Some !camel_ref) !human_ref_lst; *)
-  (* next_state game_state Active; *)
   draw_map sdl_area !map_ref
 
 (* sets up the game *)
-let reset_game seed = reset_map seed
+let reset_game seed =
+  reset_map seed;
+  GameState.reset game_state
+
 let bg = (255, 255, 255, 255)
 
 let make_greeting_board =

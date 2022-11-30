@@ -8,6 +8,8 @@ open Pacmap
 type event =
   | Start
   | PauseEvent
+  | Reset
+  | Score of int
   | Camelmove of string
 
 type game_state =
@@ -40,3 +42,6 @@ val change_state : state -> game_state -> unit
 
 (** [update state event] updates the game state according to the event*)
 val update : state -> event -> unit
+
+(** score *)
+val score : state -> int -> unit
