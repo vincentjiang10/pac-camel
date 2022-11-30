@@ -27,3 +27,6 @@ opendoc: doc
 zip:
 	rm -f pac_camel.zip
 	zip -r pac_camel.zip . -x@exclude.lst
+
+cloc: 
+	cloc --by-file --include-lang=OCaml .  
