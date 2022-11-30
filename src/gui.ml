@@ -69,7 +69,7 @@ let rec human_inits acc n =
       (n - 1)
 
 let human_ref_lst = ref (human_inits [] 4)
-(* let game_state = GameState.init None [] [] !map_ref *)
+let game_state = GameState.init camel_ref human_ref_lst (ref []) map_ref
 
 let reset_map (seed : int) =
   (* reset canvas *)
@@ -129,7 +129,6 @@ let main () =
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
 
-  go (Sdl.set_texture_blend_mode camel_texture Sdl.Blend.mode_none);
   Draw.set_color renderer bg;
   go (Sdl.render_clear renderer);
 
@@ -156,33 +155,47 @@ let main () =
       camel_dir_ref := dir
     in
     (if Sdl.poll_event (Some e) then
-     match Trigger.event_kind e with
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         move_check (0, -camel_speed)
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         move_check (0, camel_speed)
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-         move_check (camel_speed, 0)
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         move_check (-camel_speed, 0)
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
-         let change_board () =
-           board := make_game_board
-           (* GameState.next_state game_state Active *)
-         in
+     match current_state game_state with
+     | Active -> (
+         match Trigger.event_kind e with
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
+             move_check (0, -camel_speed)
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
+             move_check (0, camel_speed)
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
+             move_check (camel_speed, 0)
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
+             move_check (-camel_speed, 0)
+         | `Key_down
+           when List.mem
+                  Sdl.Event.(get e keyboard_keycode)
+                  [ Sdl.K.r; Sdl.K.space ] ->
+             print_endline "restart";
+             reset_game (int 10000)
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.p ->
+             change_state game_state Pause
+         | _ -> ())
+     | Inactive -> (
+         match Trigger.event_kind e with
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
+             let change_board () =
+               board := make_game_board;
+               GameState.change_state game_state Active
+             in
 
-         let th : Thread.t = Thread.create change_board () in
-         Thread.join th;
+             let th : Thread.t = Thread.create change_board () in
+             Thread.join th;
 
-         let make_window () = make_sdl_windows ~windows:[ win ] !board in
-         let th2 : Thread.t = Thread.create make_window () in
-         Thread.join th2;
-         reset_game (int 10000)
-     | `Key_down
-       when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
-       ->
-         print_endline "restart";
-         reset_game (int 10000)
+             let make_window () = make_sdl_windows ~windows:[ win ] !board in
+             let th2 : Thread.t = Thread.create make_window () in
+             Thread.join th2;
+             reset_game (int 10000)
+         | _ -> ())
+     | Pause -> (
+         match Trigger.event_kind e with
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.p ->
+             change_state game_state Active
+         | _ -> ())
      | _ -> ());
 
     (* TODO: implement auto camel movement in the direction of !camel_dir? *)
@@ -195,48 +208,54 @@ let main () =
     let w, h = Camel.size camel in
     refresh_custom_windows !board;
 
-    let render_rect ~x ~y ~w ~h =
-      go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)))
-    in
+    (let render_rect ~x ~y ~w ~h =
+       go (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x ~y ~w ~h)))
+     in
 
-    (* TODO: implement a timer that brings out the humans one at a time *)
-    if
-      not (one_step true (start_fps, fps) !board)
-      (* one_step returns true if fps was executed *)
-    then fps ()
-    else fps ();
+     (* TODO: implement a timer that brings out the humans one at a time *)
+     if
+       not (one_step true (start_fps, fps) !board)
+       (* one_step returns true if fps was executed *)
+     then fps ()
+     else fps ();
 
-    (* Camel and human rendering happens after fps so that they are on top of
-       the map. *)
-    (* if GameState.current_state game_state = Active then begin *)
-    List.iteri
-      (fun i human ->
-        let x_h, y_h = Human.pos !human in
-        let w, h = Human.size !human in
-        go
-          (Sdl.render_copy
-             ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h))
-             renderer human_texture);
-        (* render_rect ~x:x_h ~y:y_h ~w ~h; *)
-        (* experimental *)
-        if float 1. > 0.5 then
-          let scale k (x, y) = (k * x, k * y) in
-          Human.move human map
-            (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed))
-      humans;
-    go
-      (Sdl.render_copy
-         ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
-         renderer camel_texture);
-    (* end else (); *)
+     (* Camel and human rendering happens after fps so that they are on top of
+        the map. *)
+     if GameState.current_state game_state != Inactive then (
+       List.iteri
+         (fun i human ->
+           let x_h, y_h = Human.pos !human in
+           let w, h = Human.size !human in
+           go
+             (Sdl.render_copy
+                ?dst:(Some (Sdl.Rect.create ~x:x_h ~y:y_h ~w ~h))
+                renderer human_texture);
+           if current_state game_state = Active then
+             try
+               if (* experimental *)
+                  float 1. > 0.5 then
+                 let scale k (x, y) = (k * x, k * y) in
+                 Human.move human map
+                   (get_path_dir map (x_h, y_h) (x_c, y_c) |> scale human_speed)
+             with _ -> ())
+         humans;
+       go
+         (Sdl.render_copy
+            ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
+            renderer camel_texture));
+     if current_state game_state = Pause then (
+       (* render transulent screen above*)
+       Draw.set_color renderer (255, 255, 255, 100);
+
+       render_rect ~x:0 ~y:0 ~w:800 ~h:800));
     Sdl.render_present renderer;
     mainloop e
   in
 
   let e = Sdl.Event.create () in
   start_fps ();
-  (* let () = try mainloop e with _ -> exit 0 in *)
-  let () = mainloop e in
+  let () = try mainloop e with _ -> exit 0 in
+  (* let () = mainloop e in *)
   Sdl.destroy_window win;
   Draw.quit ()
 

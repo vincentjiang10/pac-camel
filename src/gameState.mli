@@ -12,7 +12,6 @@ type event =
 
 type game_state =
   | Inactive
-  | Initialize
   | Active
   | Pause
   | Win
@@ -22,12 +21,18 @@ type state
 
 (** [init camel human_lst item_lst map] initialize a game state with at
     Inactive, with the given camel, huamns, and items on [map]*)
-val init : Camel.t -> Human.t ref list -> Item.t list -> Pacmap.t -> state
+val init :
+  Camel.t ref ->
+  Human.t ref list ref ->
+  Item.t list ref ->
+  Pacmap.t ref ->
+  state
 
 (** [reset state camel human_lst item_lst map] reset the game with provided
     camel, huamns, and items on [map] *)
-val reset :
-  state -> Camel.t -> Human.t ref list -> Item.t list -> Pacmap.t -> unit
 
+(** [current_state state] is the game state of [state] *)
 val current_state : state -> game_state
-val next_state : state -> game_state -> unit
+
+(** [change_state state] modifies the game state of [state] *)
+val change_state : state -> game_state -> unit

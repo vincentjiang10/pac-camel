@@ -19,7 +19,6 @@ type event =
 
 type game_state =
   | Inactive
-  | Initialize
   | Active
   | Pause
   | Win
@@ -27,29 +26,40 @@ type game_state =
 
 type state = {
   mutable game : game_state;
-  mutable camel : camel;
-  mutable human : human_state ref list;
-  mutable items : Item.t list;
-  mutable map : Pacmap.t;
+  mutable camel : camel ref;
+  mutable human : human_state ref list ref;
+  mutable items : Item.t list ref;
+  mutable map : Pacmap.t ref;
 }
 
-(** [init c h i] initializes a new game with c*)
-let init c h i m = { game = Active; camel = c; human = h; items = i; map = m }
+(* initialize a state *)
+let init camel human items map = { game = Inactive; camel; human; items; map }
 
-let next_state state sNext = state.game <- sNext
-let change_camel state new_camel = state.camel <- new_camel
-let change_human state new_humans = state.human <- new_humans
-let change_items state new_items = state.items <- new_items
-let change_map state new_map = state.map <- new_map
+(* make change to current state *)
+let change_state state game = state.game <- game
+let change_camel state camel = state.camel <- camel
+let change_human state human = state.human <- human
+let change_map state map = state.map <- map
+let change_items state item = state.items <- item
 
-let reset state new_camel new_humans new_items new_map =
-  next_state state Active;
-  change_camel state new_camel;
-  change_human state new_humans;
-  change_items state new_items;
-  change_map state new_map
+let reset state camel human items map =
+  (* change_state state game; *)
+  change_camel state camel;
+  change_human state human;
+  change_map state map;
+  change_items state items
 
-let current_state state : game_state = state.game
-let camel_pos state = Camel.pos state.camel
-let camel_texture state = Tsdl_image.Image.load (Camel.src state.camel)
-let human_pos state = List.map (fun human -> Human.pos !human) state.human
+(* check current game state *)
+let is_inactive state = state.game = Inactive
+let is_active state = state.game = Active
+let is_pause state = state.game = Pause
+let is_win state = state.game = Win
+let is_lose state = state.game = Lose
+
+(* access information *)
+let current_state st = st.game
+(* let get_camel_surface state = Tsdl_image.Image.load (Camel.src
+   (!state.camel))
+
+   let get_human_surface state = List.map (fun x -> Tsdl_image.Image.load
+   (Human.src !x)) !state.human *)
