@@ -46,15 +46,16 @@ let reset state =
   state.score <- 0
 
 let change_state state game = state.game <- game
+let score state inc = state.score <- state.score + inc
 
 let update state event =
   match (state.game, event) with
   | Inactive, Start -> change_state state Active
   | Active, PauseEvent -> change_state state Pause
   | Active, _ when state.lives = 0 -> change_state state Lose
+  | Active, Score i -> score state i
   | Pause, Start -> change_state state Active
   | _, _ -> ()
 
 (* access information *)
 let current_state st = st.game
-let score state inc = state.score <- state.score + inc

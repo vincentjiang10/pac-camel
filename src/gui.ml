@@ -26,6 +26,18 @@ let start_title_w =
 
 let start_button_w = W.button "Press [s] to Start the Game"
 
+let thick_grey_line =
+  Style.mk_line ~color:Draw.(opaque black) ~width:3 ~style:Solid ()
+
+let round_blue_box =
+  let open Style in
+  let border = mk_border ~radius:2 thick_grey_line in
+  create ~border ~background:(color_bg Draw.(opaque @@ find_color "black")) ()
+
+let bg_off = Style.color_bg Draw.none
+let bg_over = Some (Style.opaque_bg Draw.grey)
+let fg = Draw.(opaque black)
+
 (*LAYOUT*)
 
 (* TODO @GUI (optional): animate in the title + add hovering to buttons upon
@@ -49,8 +61,31 @@ let start_button_l = L.resident ~x:30 ~y:35 ~w:250 ~h:2 start_button_w
 
 (* TODO @GUI (post-MS2): fix canvas margins; currently resizing windows causes
    undesirable behavior; perhaps set a minimum window dimension *)
-let canvas = W.sdl_area ~w:800 ~h:800 ()
+let canvas = W.sdl_area ~w:800 ~h:800 ~style:round_blue_box ()
 let canvas_l = L.resident ~x:0 ~y:0 canvas
+let start = W.image "assets/images/start.png"
+let start_l = L.resident start
+let life1 = W.image "assets/images/camel.png" ~w:10 ~h:10
+let life2 = W.image "assets/images/camel.png" ~w:10 ~h:10 ~angle:10.0
+(* ~bg:Draw.(opaque black) *)
+
+let life3 = W.image "assets/images/camel.png" ~w:10 ~h:10 ~angle:20.0
+let score = ref 0
+
+let score_w =
+  W.label
+    ("Score: " ^ string_of_int !score)
+    ~fg:Draw.(opaque (find_color "black"))
+
+let score_l = L.resident score_w ~x:870 ~w:100 ~h:100 ~y:200
+
+let pause_button =
+  W.button "Pause" ~bg_off (* ~bg_on *)
+    ~bg_over ~kind:Switch
+    ~label_on:(Label.icon ~fg "pause-circle")
+    ~label_off:(Label.icon ~fg:Draw.(lighter (lighter fg)) "pause-circle")
+
+let pause_button_l = L.resident pause_button ~x:950 ~y:20 ~w:50 ~h:30
 let sdl_area = W.get_sdl_area canvas
 
 (* reference to map *)
@@ -87,19 +122,32 @@ let reset_game seed =
 let bg = (255, 255, 255, 255)
 
 let make_greeting_board =
-  let greeting_layout = L.superpose [ start_title_l; start_button_l ] in
+  let greeting_layout = L.superpose [ start_l ] in
   L.set_width greeting_layout 800;
   L.set_height greeting_layout 800;
 
   of_layout greeting_layout
 
 let make_game_board =
+  let lives_l = L.flat_of_w [ life1; life2; life3 ] in
+  L.set_height lives_l 60;
+  L.set_width lives_l 150;
+  L.setx lives_l 850;
+  L.sety lives_l 150;
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  let layout = L.superpose [ canvas_l ] in
-  L.set_width layout 385;
+  let layout =
+    L.superpose [ canvas_l; score_l; pause_button_l; lives_l; Space.hfill () ]
+  in
+  L.set_width layout 481;
   L.set_height layout 385;
-  of_layout layout
+  L.fix_content layout;
+  let button_connection =
+    W.connect pause_button pause_button
+      (fun _ _ _ -> change_state game_state Active)
+      T.buttons_down
+  in
+  of_layout ~connections:[ button_connection ] layout
 
 let board = ref make_greeting_board
 
@@ -109,7 +157,7 @@ let main () =
   go (Sdl.init Sdl.Init.video);
   let win =
     go
-      (Sdl.create_window ~w:800 ~h:800 "Pac-Camel Game"
+      (Sdl.create_window ~w:1000 ~h:800 "Pac-Camel Game"
          Sdl.Window.(shown + popup_menu))
   in
 
@@ -158,6 +206,8 @@ let main () =
     (if Sdl.poll_event (Some e) then
      match current_state game_state with
      | Active -> (
+         (* if W.get_state pause_button then ( print_endline " pause";
+            change_state game_state Pause) else *)
          match Trigger.event_kind e with
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
              move_check (0, -camel_speed)
@@ -192,11 +242,10 @@ let main () =
              Thread.join th2;
              reset_game (int 10000)
          | _ -> ())
-     | Pause -> (
-         match Trigger.event_kind e with
-         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.p ->
-             change_state game_state Active
-         | _ -> ())
+     | Pause ->
+         if not (W.get_state pause_button) then (
+           print_endline "start";
+           change_state game_state Active)
      | _ -> ());
 
     (* TODO: implement auto camel movement in the direction of !camel_dir? *)
