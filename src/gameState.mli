@@ -7,7 +7,7 @@ open Pacmap
 
 type event =
   | Start
-  | Pause
+  | PauseEvent
   | Camelmove of string
 
 type game_state =
@@ -30,9 +30,13 @@ val init :
 
 (** [reset state camel human_lst item_lst map] reset the game with provided
     camel, huamns, and items on [map] *)
+val reset : state -> unit
 
 (** [current_state state] is the game state of [state] *)
 val current_state : state -> game_state
 
 (** [change_state state] modifies the game state of [state] *)
 val change_state : state -> game_state -> unit
+
+(** [update state event] updates the game state according to the event*)
+val update : state -> event -> unit
