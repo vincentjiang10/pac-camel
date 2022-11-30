@@ -71,6 +71,10 @@ let camel_1_ref = ref camel_1
 let _ = Camel.move camel_1_ref map_1 (-1, 0) empty_fun
 let pos5 = Camel.pos !camel_1_ref |> to_canvas
 let pos0_human = initial_pos_human |> to_canvas
+let camel_1 = Camel.("assets/images/camel-cartoon.png" |> init !map_1)
+let camel_1_ref = ref camel_1
+let _ = Camel.move camel_1_ref map_1 (-1, -1) empty_fun
+let pos6 = Camel.pos !camel_1_ref |> to_canvas
 let pos1_human = Human.pos !human_1_ref |> to_canvas
 let _ = Human.move human_1_ref map_1 (1, 0) empty_fun
 let pos2_human = Human.pos !human_1_ref |> to_canvas
@@ -86,11 +90,22 @@ let human_1 = Human.("assets/images/human.png" |> init !map_1)
 let human_1_ref = ref human_1
 let _ = Human.move human_1_ref map_1 (-1, 0) empty_fun
 let pos5_human = Human.pos !human_1_ref |> to_canvas
+let human_1 = Human.("assets/images/human.png" |> init !map_1)
+let human_1_ref = ref human_1
+let human_1 = Human.("assets/images/human.png" |> init !map_1)
+let human_1_ref = ref human_1
+let human_1 = Human.("assets/images/human.png" |> init !map_1)
+let human_1_ref = ref human_1
 
-(*let _ = string_of_point pos0_human |> print_endline let _ = string_of_point
-  pos4_human |> print_endline*)
-(*let _ = string_of_point pos0_human |> print_endline let _ = string_of_point
-  pos5_human |> print_endline*)
+(*had to create multiple humans because of the way human_init was implemented
+  needed a specific human that I want to test. *)
+let pos_human_0 = Human.pos human_1 |> to_canvas
+let _ = Human.move human_1_ref map_1 (-1, -1) empty_fun
+let pos6_human = Human.pos !human_1_ref |> to_canvas
+let _ = Human.move human_1_ref map_1 (-1, -1) empty_fun
+let pos_human_1 = Human.pos human_1 |> to_canvas
+let _ = Human.move human_1_ref map_1 (1, 1) empty_fun
+let pos7_human = Human.pos !human_1_ref |> to_canvas
 
 let movable_tests =
   [
@@ -221,13 +236,7 @@ let movable_tests =
       \  that direction, here initial means the human's position before moving \
        anywhere. "
     >:: fun _ -> assert_equal false (comp_points pos4_human pos0_human) );
-    (*( "sample test 18: same as sample test 17, but testing positions directly.
-      \ Note: the Human.move from sample test 17 has already changed position \
-      of human, so no need to call it again. \n\ \ NOTE: coordinates on sdl_area
-      are converted to coordinates on the\n\ \ canvas before comparison " >::
-      fun _ -> assert_equal true (pos0_human |> add (0, -1) |> comp_points
-      pos4_human) );*)
-    ( "sample test 19: testing that after moving with dir = (0,1) with the \
+    ( "sample test 18: testing that after moving with dir = (0,1) with the \
        human on \n\
        the canvas that the speed remains the same given the fact the camel has \
        not picked\n\
@@ -235,47 +244,95 @@ let movable_tests =
        since \n\
       \      they are not the players"
     >:: fun _ -> assert_equal 1 (Human.speed human_1) );
-    ( " sample test 20: Testing after moving with dir = (0,-1) with the camel on\n\
+    ( " sample test 19: Testing after moving with dir = (0,-1) with the camel on\n\
       \  the canvas that the position is no longer the same as the initial, \n\
       \  this is given the fact that there is an open path for the camel to \
        move to \n\
       \  that direction, here initial means the camel's position before moving \
        anywhere. "
     >:: fun _ -> assert_equal false (comp_points pos4 pos0) );
-    ( "sample test 21: same as sample test 20, but testing positions directly.\n\
-      \   Note: the Camel.move from sample test 20 has already changed \
+    ( "sample test 20: same as sample test 19, but testing positions directly.\n\
+      \   Note: the Camel.move from sample test 19 has already changed \
        position of camel, so no need to call it again. \n\
       \  NOTE: coordinates on sdl_area\n\
       \  are converted to coordinates on the\n\
       \  canvas before comparison "
     >:: fun _ -> assert_equal true (pos0 |> add (0, -1) |> comp_points pos4) );
-    ( "sample test 22: testing that after moving with dir = (0,-1) with the \
+    ( "sample test 21: testing that after moving with dir = (0,-1) with the \
        camel on \n\
       \   the canvas that the speed remains the same given the fact the camel \
        has not picked\n\
       \   up any power ups yet"
     >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
-    ( " sample test 23: Testing after moving with dir = (-1,0) with the camel on\n\
+    ( " sample test 22: Testing after moving with dir = (-1,0) with the camel on\n\
       \  the canvas that the position is  the same as the initial, \n\
       \  this is given the fact that there is not an open path for the camel \
        to move to \n\
       \  that direction, here initial means the camel's position before moving \
        anywhere. "
     >:: fun _ -> assert_equal true (comp_points pos5 pos0) );
-    ( " sample test 24: Testing after moving with dir = (-1,0) with the human on\n\
-      \  the canvas that the position is no longer the same as the initial, \n\
-      \  this is given the fact that there is an open path for the human to \
-       move to \n\
-      \  that direction, here initial means the human's position before moving \
-       anywhere. "
-    >:: fun _ -> assert_equal false (comp_points pos5_human pos0_human) );
-    (*( "sample test 25: same as sample test 24, but testing positions
-      directly.\n\ \ Note: the Human.move from sample test 24 has already
-      changed \ position of human, so no need to call it again. \n\ \ NOTE:
-      coordinates on sdl_area\n\ \ are converted to coordinates on the\n\ \
-      canvas before comparison " >:: fun _ -> assert_equal true (pos0_human |>
-      add (-1, 0) |> comp_points pos5_human) );*)
-    ( "sample test 26: testing that after moving with dir = (-1,0) with the \
+    ( " sample test 23: Testing after moving with dir = (-1,-1) with the camel \
+       on \n\
+      \    the canvas that the position is the same as the initial, this is \
+       given the \n\
+      \    fact that there is an open path for the camel to move to in that \
+       direction, \n\
+      \    here initial means the came's position before moviing anywhere"
+    >:: fun _ -> assert_equal false (comp_points pos6 pos0) );
+    ( "sample test 24: same as sample test 23, but testing positions directly.\n\
+      \   Note: the Camel.move from sample test 23 has already changed \
+       position of camel, so no need to call it again. \n\
+      \  NOTE: coordinates on sdl_area\n\
+      \  are converted to coordinates on the\n\
+      \  canvas before comparison "
+    >:: fun _ -> assert_equal true (pos0 |> add (-1, -1) |> comp_points pos6) );
+    ( "sample test 25: testing that after moving with dir = (-1,-1) with the \
+       camel on \n\
+      \   the canvas that the speed remains the same given the fact the camel \
+       has not picked\n\
+      \   up any power ups yet"
+    >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
+    ( " sample test 26: Testing after moving with dir = (-1,-1) with the human \
+       on \n\
+      \    the canvas that the position is the same as the initial, this is \
+       given the \n\
+      \    fact that there is an open path for the human to move to in that \
+       direction, \n\
+      \    here initial means the came's position before moviing anywhere"
+    >:: fun _ -> assert_equal false (comp_points pos6_human pos_human_0) );
+    ( "sample test 27: same as sample test 26, but testing positions directly.\n\
+      \   Note: the Human.move from sample test 26 has already changed \
+       position of human, so no need to call it again. \n\
+      \  NOTE: coordinates on sdl_area\n\
+      \  are converted to coordinates on the\n\
+      \  canvas before comparison "
+    >:: fun _ ->
+      assert_equal true (pos_human_0 |> add (-1, -1) |> comp_points pos6_human)
+    );
+    ( "sample test 28: testing that after moving with dir = (-1,-1) with the \
+       human on \n\
+       the canvas that the speed remains the same given the fact the camel has \
+       not picked\n\
+      \   up any power ups yet since humans can not modify their own speed \
+       since \n\
+      \      they are not the players"
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
+    ( " sample test 29: Testing after moving with dir = (1,1) with the human on \n\
+      \    the canvas that the position is the same as the initial, this is \
+       given the \n\
+      \    fact that there is an open path for the human to move to in that \
+       direction, \n\
+      \    here initial means the came's position before moviing anywhere"
+    >:: fun _ -> assert_equal false (comp_points pos7_human pos_human_1) );
+    ( "sample test 30: same as sample test 29, but testing positions directly.\n\
+      \   Note: the Human.move from sample test 29 has already changed \
+       position of human, so no need to call it again. \n\
+      \  NOTE: coordinates on sdl_area\n\
+      \  are converted to coordinates on the\n\
+      \  canvas before comparison "
+    >:: fun _ ->
+      assert_equal true (pos_human_1 |> add (1, 1) |> comp_points pos7_human) );
+    ( "sample test 31: testing that after moving with dir = (1,1) with the \
        human on \n\
        the canvas that the speed remains the same given the fact the camel has \
        not picked\n\
@@ -287,8 +344,6 @@ let movable_tests =
 
 let gui_tests = []
 let item_tests = []
-let pacmap_tests = []
-let state_tests = []
 let tests = []
 let suite = "test suite for Pac Caml" >::: List.flatten [ movable_tests ]
 let _ = run_test_tt_main suite
