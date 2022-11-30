@@ -29,4 +29,5 @@ zip:
 	zip -r pac_camel.zip . -x@exclude.lst
 
 cloc: 
+	make clean
 	cloc --by-file --include-lang=OCaml .  
