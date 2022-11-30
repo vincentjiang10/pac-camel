@@ -37,3 +37,6 @@ val state_time : int ref
 
 (* [!state_score] is the score counter for the current game *)
 val state_score : int ref
+
+(* [!state_human_scared] is either true or false *)
+val state_human_scared : bool ref

@@ -61,35 +61,35 @@ module Camel : Movable = struct
   (* depending on the camel state, move may have different side effects on [t]
      and on [map]. For example, we may mutate [!t]'s position or speed with an
      item *)
-  (* TODO: may need to take in a list of references (human references); Reason
-     being a few items might affect both camels and humans *)
   let move t map_ref dir render =
     let map = !map_ref in
     let p_curr = !t.pos in
     let p_new, space = find_move map p_curr dir in
     tween p_curr p_new t render;
     match space with
-    | Mass item_ref -> begin
+    | Mass item_ref ->
         let item = !item_ref in
         effect item;
+        (* item effect logic *)
         (* TODO: add possible changes due to items to game state (State.ml),
            camel, and humans *)
-        match item_type item with
-        | BigCoin -> ()
-        | SmallCoin ->
-            (* removes the coin at camel location in game board *)
-            remove_item map_ref p_new
-        | Coins -> ()
-        | Speed -> ()
-        | Traj -> ()
-        | Sand -> ()
-        | Phase -> ()
-        | Cactus -> ()
-        | Tele -> ()
-        | Dim -> ()
-        | Life -> ()
-        | Time -> ()
-      end
+        begin
+          match item_type item with
+          | BigCoin -> ()
+          | SmallCoin -> ()
+          | Coins -> ()
+          | Speed -> ()
+          | Traj -> ()
+          | Sand -> ()
+          | Phase -> ()
+          | Cactus -> ()
+          | Tele -> ()
+          | Dim -> ()
+          | Life -> ()
+          | Time -> ()
+        end;
+        (* removes the coin at camel location in game board *)
+        remove_item map_ref p_new
     | Empty -> ()
 end
 

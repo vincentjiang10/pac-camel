@@ -19,3 +19,4 @@ let state_time = ref 0
 
 (* TODO @Vincent: fix issue where coins are generated outside of map? *)
 let state_score = ref 0
+let state_human_scared = ref false

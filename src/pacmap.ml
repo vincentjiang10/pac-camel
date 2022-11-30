@@ -258,12 +258,13 @@ let populate_items data s =
       if data.(x).(y) = Floor Empty then
         data.(x).(y) <-
           Floor
-            (match gen_rand_item () with
-            | None -> Empty
-            | Some item_ref ->
-                let sdl_loc = to_sdl_area (x, y) in
-                item_list_ref := (sdl_loc, item_ref) :: !item_list_ref;
-                Mass item_ref)
+            (let item_ref = gen_rand_item () in
+             match item_ref with
+             | None -> Empty
+             | Some item_ref ->
+                 let sdl_loc = to_sdl_area (x, y) in
+                 item_list_ref := (sdl_loc, item_ref) :: !item_list_ref;
+                 Mass item_ref)
     done
   done;
   !item_list_ref
@@ -413,13 +414,13 @@ let check_item_expiration map_ref =
       (fun (sdl_loc, item_ref) ->
         let item = !item_ref in
         let time_elapsed = !state_time - startTime item in
-        let expired = time_elapsed < duration item in
+        let expired = time_elapsed > duration item in
         if expired then begin
           let x, y = to_canvas sdl_loc in
           map.data.(x).(y) <- Floor Empty;
-          true
+          false
         end
-        else false)
+        else true)
       map.item_list
   in
   map_ref := { map with item_list }

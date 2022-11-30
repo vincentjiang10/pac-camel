@@ -196,9 +196,6 @@ let main () =
     then fps ()
     else fps ();
 
-    (* testing *)
-    print_endline (string_of_int !state_time);
-
     (* checks item expiration *)
     check_item_expiration map_ref;
 
