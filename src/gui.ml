@@ -102,6 +102,7 @@ let make_game_board =
   of_layout layout
 
 let board = ref make_greeting_board
+let state = init_state ()
 
 let main () =
   let open Tsdl in
@@ -151,32 +152,42 @@ let main () =
 
     (* if paused, then disable the below internally, not the whole match body *)
     (if Sdl.poll_event (Some e) then
-     match Trigger.event_kind e with
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
-         move_check (0, -1)
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
-         move_check (0, 1)
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-         move_check (1, 0)
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-         move_check (-1, 0)
-     | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
-         print_endline "game start";
-         camel_dir_ref := (0, 0);
-         let change_board () = board := make_game_board in
-         (* let th : Thread.t = Thread.create Sync.push change_board in *)
-         let th : Thread.t = Thread.create change_board () in
-         Thread.join th;
-         let make_window () = make_sdl_windows ~windows:[ win ] !board in
-         let th2 : Thread.t = Thread.create make_window () in
-         Thread.join th2;
-         reset_game (int 10000)
-     | `Key_down
-       when List.mem Sdl.Event.(get e keyboard_keycode) [ Sdl.K.r; Sdl.K.space ]
-       ->
-         print_endline "restart";
-         camel_dir_ref := (0, 0);
-         reset_game (int 10000)
+     match current_state state with
+     | Active -> (
+         match Trigger.event_kind e with
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.up ->
+             move_check (0, -1)
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
+             move_check (0, 1)
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
+             move_check (1, 0)
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
+             move_check (-1, 0)
+         | `Key_down
+           when List.mem
+                  Sdl.Event.(get e keyboard_keycode)
+                  [ Sdl.K.r; Sdl.K.space ] ->
+             print_endline "restart";
+             camel_dir_ref := (0, 0);
+             reset_game (int 10000)
+         | _ -> ())
+     | Inactive -> (
+         match Trigger.event_kind e with
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
+             print_endline "game start";
+             camel_dir_ref := (0, 0);
+             let change_board () =
+               board := make_game_board;
+               change_state state Active
+             in
+             (* let th : Thread.t = Thread.create Sync.push change_board in *)
+             let th : Thread.t = Thread.create change_board () in
+             Thread.join th;
+             let make_window () = make_sdl_windows ~windows:[ win ] !board in
+             let th2 : Thread.t = Thread.create make_window () in
+             Thread.join th2;
+             reset_game (int 10000)
+         | _ -> ())
      | _ -> ());
 
     Draw.set_color renderer bg;
@@ -204,62 +215,65 @@ let main () =
     let item_list = get_items map in
     let new_rect (w, h) (x, y) = Sdl.Rect.create ~x ~y ~w ~h in
     Draw.set_color renderer (100, 200, 200, 255);
-    List.iter
-      (fun ((x, y), item_ref) ->
-        let size = Item.size !item_ref in
-        let loc =
-          match Item.item_type !item_ref with
-          | SmallCoin -> (x + (fst size / 2), y + (snd size / 2))
-          | _ -> (x, y)
-        in
-        go (Sdl.render_fill_rect renderer (Some (new_rect size loc))) |> ignore)
-      item_list;
 
-    (* Camel and human rendering happens after fps so that they are on top of
-       the map. *)
+    if current_state state != Inactive then (
+      List.iter
+        (fun ((x, y), item_ref) ->
+          let size = Item.size !item_ref in
+          let loc =
+            match Item.item_type !item_ref with
+            | SmallCoin -> (x + (fst size / 2), y + (snd size / 2))
+            | _ -> (x, y)
+          in
+          go (Sdl.render_fill_rect renderer (Some (new_rect size loc)))
+          |> ignore)
+        item_list;
 
-    (* camel rendering logic *)
-    let render_camel () =
-      let x, y = Camel.pos camel in
-      go
-        (Sdl.render_copy
-           ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
-           renderer camel_texture)
-    in
-    render_camel ();
+      (* Camel and human rendering happens after fps so that they are on top of
+         the map. *)
 
-    let camel_spd = Camel.speed camel in
-    let camel_period = 30 / camel_spd in
-    if camel_spd <> 0 && !state_time mod camel_period = 0 then
-      Camel.move camel_ref map_ref camel_dir (fun () -> ());
+      (* camel rendering logic *)
+      let render_camel () =
+        let x, y = Camel.pos camel in
+        go
+          (Sdl.render_copy
+             ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
+             renderer camel_texture)
+      in
+      render_camel ();
 
-    (* human rendering logic *)
-    List.iteri
-      (fun i human ->
-        (* abstract into a function, then use this in tween *)
-        let x_h, y_h = Human.pos !human in
-        let w, h = Human.size !human in
-        let render_human () =
-          let x, y = Human.pos !human in
-          go
-            (Sdl.render_copy
-               ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
-               renderer human_texture)
-        in
-        (* TODO: increase inversely proportional to number of coins (retrieved
-           from State) *)
-        let human_spd = Human.speed !human in
-        let human_period = 30 / human_spd in
-        (if
-         human_spd <> 0
-         && !state_time mod human_period = 0
-         && Time.now () - !time_ref > (i * 10000) + 1000
-         && (x_h <> x_c || y_h <> y_c)
-        then
-         let dir = get_path_dir map (x_h, y_h) (x_c, y_c) in
-         Human.move human map_ref dir render_human);
-        render_human ())
-      humans;
+      let camel_spd = Camel.speed camel in
+      let camel_period = 30 / camel_spd in
+      if camel_spd <> 0 && !state_time mod camel_period = 0 then
+        Camel.move camel_ref map_ref camel_dir (fun () -> ());
+
+      (* human rendering logic *)
+      List.iteri
+        (fun i human ->
+          (* abstract into a function, then use this in tween *)
+          let x_h, y_h = Human.pos !human in
+          let w, h = Human.size !human in
+          let render_human () =
+            let x, y = Human.pos !human in
+            go
+              (Sdl.render_copy
+                 ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
+                 renderer human_texture)
+          in
+          (* TODO: increase inversely proportional to number of coins (retrieved
+             from State) *)
+          let human_spd = Human.speed !human in
+          let human_period = 30 / human_spd in
+          (if
+           human_spd <> 0
+           && !state_time mod human_period = 0
+           && Time.now () - !time_ref > (i * 10000) + 1000
+           && (x_h <> x_c || y_h <> y_c)
+          then
+           let dir = get_path_dir map (x_h, y_h) (x_c, y_c) in
+           Human.move human map_ref dir render_human);
+          render_human ())
+        humans);
 
     Sdl.render_present renderer;
     mainloop e

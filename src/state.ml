@@ -3,13 +3,28 @@
 (** Representation of states in a game.
 
     This module represents the states the game can take on*)
-let state_inactive = ref true
+type game_state =
+  | Inactive
+  | Active
+  | Pause
+  | Win
+  | Lose
 
-let state_active = ref false
-let state_pause = ref false
-let state_continue = ref false
-let state_escape = ref false
-let state_complete = ref false
+type state = {
+  mutable game : game_state;
+  mutable lives : int;
+  mutable score : int;
+}
+
+let init_state () = { game = Inactive; lives = 3; score = 0 }
+
+(* make change to current state *)
+let reset state =
+  state.lives <- 3;
+  state.score <- 0
+
+let change_state state game = state.game <- game
+let current_state st = st.game
 
 (* default: 1 minute *)
 let state_end_time = ref 6000
