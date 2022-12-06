@@ -170,6 +170,8 @@ let main () =
              print_endline "restart";
              camel_dir_ref := (0, 0);
              reset_game (int 10000)
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.p ->
+             change_state state Pause
          | _ -> ())
      | Inactive -> (
          match Trigger.event_kind e with
@@ -187,6 +189,11 @@ let main () =
              let th2 : Thread.t = Thread.create make_window () in
              Thread.join th2;
              reset_game (int 10000)
+         | _ -> ())
+     | Pause -> (
+         match Trigger.event_kind e with
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.p ->
+             change_state state Active
          | _ -> ())
      | _ -> ());
 
@@ -275,6 +282,11 @@ let main () =
           render_human ())
         humans);
 
+    if current_state state = Pause then (
+      Draw.set_color renderer (255, 255, 255, 100);
+      go
+        (Sdl.render_fill_rect renderer
+           (Some (Sdl.Rect.create ~x:0 ~y:0 ~w:800 ~h:800))));
     Sdl.render_present renderer;
     mainloop e
   in
