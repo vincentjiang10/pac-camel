@@ -276,6 +276,7 @@ let main () =
            && !state_time mod human_period = 0
            && Time.now () - !time_ref > (i * 10000) + 1000
            && (x_h <> x_c || y_h <> y_c)
+           && current_state state = Active
           then
            let dir = get_path_dir map (x_h, y_h) (x_c, y_c) in
            Human.move human map_ref dir render_human);
