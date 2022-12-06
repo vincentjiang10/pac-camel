@@ -39,8 +39,11 @@ val src : t -> string
 (** [effect t] is the effect of [t] *)
 val effect : t -> unit
 
-(** [animate ] *)
+(** [animate t] animates item by mutating its contents (width, height, etc) *)
 val animate : t ref -> unit
+
+(** [shift t] is the amount to shift the item by *)
+val shift : t -> int * int
 
 (** [itemType t] is the item type of t *)
 val item_type : t -> item

@@ -44,6 +44,9 @@ val check_item_expiration : t ref -> unit
     in map [t] *)
 val get_items : t -> ((int * int) * Item.t ref) list
 
+(** [animate_items l] mutates item refs in [l] according to their animate logic *)
+val animate_items : Item.t ref list -> unit
+
 (** [draw_map s t] draws [t] to sdl_area [s] *)
 val draw_map : Bogue.Sdl_area.t -> t -> unit
 
@@ -58,3 +61,6 @@ val to_sdl_area : int * int -> int * int
 (** [to_canvas p] converts a point [p] on the sdl_area to a point on
     canvas/gameboard *)
 val to_canvas : int * int -> int * int
+
+(** [unit_size ()] is the size of the unit square of the current map *)
+val unit_size : unit -> int * int

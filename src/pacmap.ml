@@ -57,12 +57,12 @@ let unit_size () =
   let float_scale n = n |> Int.to_float |> Float.mul 1.5 |> Float.to_int in
   (!scale_x, !scale_y) |> apply float_scale
 
-let camel_ctx t = (t.start, unit_size (), 2)
+let camel_ctx t = (t.start, unit_size (), 3)
 
 let human_ctx t ind =
   let w, h = t.size in
   (* set initial position of humans to the center of map *)
-  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, unit_size (), 1)
+  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, unit_size (), 2)
 
 module Point = struct
   type t = int * int
@@ -373,6 +373,8 @@ let get_path_dir map src dst =
 let gen_map seed sdl_area =
   init seed;
   let s = (int 20 * 2) + 30 in
+  (* reset end time to be dependent on n^2, where n is the size of the map *)
+  state_end_time := s * s * 5;
   let data = Array.make_matrix s s (Floor Empty) in
   empty wall_set;
   empty wall_boundary;
@@ -395,8 +397,61 @@ let gen_map seed sdl_area =
 (*================================== Item Logic ==============================*)
 
 (* mutate map data to include a random item at a Floor cell and add item and its
-   location to item_list; calls on Item.gen_rand_item *)
-let add_item map_ref = ()
+   location to item_list; calls on gen_rand_item *)
+let add_item map_ref =
+  let map = !map_ref in
+  let is_item map (x, y) =
+    if x < 0 || y < 0 || x >= fst map.size || y >= snd map.size then false
+    else
+      match map.data.(x).(y) with
+      | Floor (Mass _) -> true
+      | _ -> false
+  in
+  let check_neighbor map (x, y) =
+    let neighbor_lst =
+      [
+        (x, y);
+        (x + 1, y);
+        (x + 1, y + 1);
+        (x, y + 1);
+        (x + 1, y - 1);
+        (x - 1, y);
+        (x - 1, y + 1);
+        (x - 1, y - 1);
+        (x, y - 1);
+      ]
+    in
+    List.fold_left (fun acc loc -> acc || is_item map loc) false neighbor_lst
+  in
+  let rec return_floor_loc map =
+    let w, h = map.size in
+    let data = map.data in
+    let x, y = (int w, int h) in
+    match data.(x).(y) with
+    | Floor _ ->
+        (* check neighboring floors do not contain a small coin *)
+        if check_neighbor map (x, y) then return_floor_loc map else (x, y)
+    | Wall -> return_floor_loc map
+  in
+  let x, y = return_floor_loc map in
+  let item_list_ref = ref map.item_list in
+  let item_ref_opt = gen_rand_item () in
+  map.data.(x).(y) <-
+    Floor
+      begin
+        match item_ref_opt with
+        | None -> Empty
+        | Some item_ref -> begin
+            match item_type !item_ref with
+            | SmallCoin -> Empty (* do not add item if it's a small coin *)
+            | _ ->
+                let sdl_loc = to_sdl_area (x, y) in
+                item_list_ref := (sdl_loc, item_ref) :: !item_list_ref;
+                Mass item_ref
+          end
+      end;
+  (* mutate contents of map_ref *)
+  map_ref := { !map_ref with data = map.data; item_list = !item_list_ref }
 
 let remove_item map_ref loc =
   let x, y = to_canvas loc in
@@ -426,6 +481,7 @@ let check_item_expiration map_ref =
   map_ref := { map with item_list }
 
 let get_items map = map.item_list
+let animate_items item_list = List.iter Item.animate item_list
 
 (*================================== Drawing =================================*)
 let color_of_rgb c a =

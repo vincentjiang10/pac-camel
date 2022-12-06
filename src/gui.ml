@@ -199,9 +199,9 @@ let main () =
 
     Draw.set_color renderer bg;
 
-    (* update time counter *)
-    incr state_time;
-
+    (* TODO: @Vincent add collision effect between camel and humans: 1.) if
+       humans are scared, then make them go back to the home base and increment
+       score; 2.) lose a heart and activate human invincible mode *)
     go (Sdl.render_clear renderer);
     let x_c, y_c = Camel.pos camel in
     let w, h = Camel.size camel in
@@ -227,11 +227,15 @@ let main () =
       List.iter
         (fun ((x, y), item_ref) ->
           let size = Item.size !item_ref in
-          let loc =
+          let x, y =
             match Item.item_type !item_ref with
-            | SmallCoin -> (x + (fst size / 2), y + (snd size / 2))
+            | SmallCoin ->
+                let x_u, y_u = unit_size () in
+                (x + (x_u / 4), y + (y_u / 4))
             | _ -> (x, y)
           in
+          let x_shift, y_shift = Item.shift !item_ref in
+          let loc = (x + x_shift, y + y_shift) in
           go (Sdl.render_fill_rect renderer (Some (new_rect size loc)))
           |> ignore)
         item_list;
@@ -282,6 +286,15 @@ let main () =
            Human.move human map_ref dir render_human);
           render_human ())
         humans);
+
+    if current_state state = Active then begin
+      (* add possible item to map_ref *)
+      if float 1. > 0.7 then add_item map_ref;
+      (* animate items *)
+      animate_items (item_list |> List.map (fun (_, item_ref) -> item_ref));
+      (* update time counter *)
+      incr state_time
+    end;
 
     if current_state state = Pause then (
       Draw.set_color renderer (255, 255, 255, 100);

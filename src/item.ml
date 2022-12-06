@@ -23,6 +23,7 @@ type t = {
   src : string;
   effect : unit -> unit;
   animate : t ref -> unit;
+  shift : int * int;
   item_type : item;
 }
 
@@ -34,11 +35,29 @@ let src t = t.src
 
 (* will depend on State.state_time *)
 let animate t = !t.animate t
+let shift t = t.shift
 let effect t = t.effect ()
 let item_type t = t.item_type
 let itemWidth = ref 0
 let itemHeight = ref 0
 let path = "assets/images/items/"
+
+(*========================== Transformation effects ==========================*)
+let rotate_y max_size item_ref =
+  (* TODO: flip source image *)
+  let item = !item_ref in
+  let width =
+    let scale =
+      cos
+        ((item.start_time |> float_of_int)
+        +. ((!state_time |> float_of_int) /. 50.))
+    in
+    (max_size |> float_of_int) *. scale |> int_of_float |> abs
+  in
+  (* x-coordinate of item location is moved half of size dilation *)
+  let shift = ((max_size - width) / 2, 0) in
+  item_ref := { item with width; shift }
+(*============================================================================*)
 
 let commonItem () =
   {
@@ -46,11 +65,13 @@ let commonItem () =
     height = !itemHeight;
     probabilty = 0.0005;
     start_time = !state_time;
-    (* 10 seconds *)
-    duration = 1000;
+    (* 20 seconds *)
+    duration = 2000;
     src = "";
     effect = (fun () -> ());
-    animate = (fun item_ref -> ());
+    (* default animation *)
+    animate = rotate_y !itemWidth;
+    shift = (0, 0);
     item_type = Life;
   }
 
@@ -63,7 +84,6 @@ let bigCoin () =
     commonItem with
     src = path ^ "coin.png";
     effect = (fun () -> ());
-    animate = (fun item_ref -> ());
     item_type = BigCoin;
   }
 
@@ -75,11 +95,11 @@ let smallCoin () =
     width = !itemWidth / 2;
     height = !itemHeight / 2;
     probabilty = 0.5;
+    animate = rotate_y (!itemWidth / 2);
     (* 1 minute *)
     duration = !state_end_time;
     src = path ^ "coin.png";
     effect = (fun () -> incr state_score);
-    animate = (fun item_ref -> ());
     item_type = SmallCoin;
   }
 
@@ -88,68 +108,32 @@ let smallCoin () =
 (* double coin values *)
 let coinsItem () =
   let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect = (fun () -> ());
-    animate = (fun item_ref -> ());
-    item_type = Coins;
-  }
+  { commonItem with src = ""; effect = (fun () -> ()); item_type = Coins }
 
 (* doubles camel speed *)
 let speedItem () =
   let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect = (fun () -> ());
-    animate = (fun item_ref -> ());
-    item_type = Speed;
-  }
+  { commonItem with src = ""; effect = (fun () -> ()); item_type = Speed }
 
 (* show human trajectory *)
 let trajectoryItem () =
   let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect = (fun () -> ());
-    animate = (fun item_ref -> ());
-    item_type = Traj;
-  }
+  { commonItem with src = ""; effect = (fun () -> ()); item_type = Traj }
 
 (* stuns players *)
 let sandItem () =
   let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect = (fun () -> ());
-    animate = (fun item_ref -> ());
-    item_type = Sand;
-  }
+  { commonItem with src = ""; effect = (fun () -> ()); item_type = Sand }
 
 (* allow phasing through walls *)
 let phaseItem () =
   let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect = (fun () -> ());
-    animate = (fun item_ref -> ());
-    item_type = Phase;
-  }
+  { commonItem with src = ""; effect = (fun () -> ()); item_type = Phase }
 
 (* scares away humans *)
 let cactusItem () =
   let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect = (fun () -> ());
-    animate = (fun item_ref -> ());
-    item_type = Cactus;
-  }
+  { commonItem with src = ""; effect = (fun () -> ()); item_type = Cactus }
 
 (* teleports player to another teleportItem *)
 (* TODO: figure out how to handle multiple of these items. Either allow camel to
@@ -157,35 +141,17 @@ let cactusItem () =
    items to exist at a time *)
 let teleportItem () =
   let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect = (fun () -> ());
-    animate = (fun item_ref -> ());
-    item_type = Tele;
-  }
+  { commonItem with src = ""; effect = (fun () -> ()); item_type = Tele }
 
 (* dims the lighting of the map to only the camel (like a spotlight) *)
 let dimItem () =
   let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect = (fun () -> ());
-    animate = (fun item_ref -> ());
-    item_type = Dim;
-  }
+  { commonItem with src = ""; effect = (fun () -> ()); item_type = Dim }
 
 (* gives an additional life to the camel *)
 let lifeItem () =
   let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect = (fun () -> ());
-    animate = (fun item_ref -> ());
-    item_type = Life;
-  }
+  { commonItem with src = ""; effect = (fun () -> ()); item_type = Life }
 
 (* gives additional time (10 seconds) until game round ends*)
 let timeItem () =
@@ -194,7 +160,6 @@ let timeItem () =
     commonItem with
     src = "";
     effect = (fun () -> state_time := !state_time + 1000);
-    animate = (fun item_ref -> ());
     item_type = Time;
   }
 
