@@ -57,12 +57,12 @@ let unit_size () =
   let float_scale n = n |> Int.to_float |> Float.mul 1.5 |> Float.to_int in
   (!scale_x, !scale_y) |> apply float_scale
 
-let camel_ctx t = (t.start, unit_size (), 3)
+let camel_ctx t = (t.start, unit_size (), 2)
 
 let human_ctx t ind =
   let w, h = t.size in
   (* set initial position of humans to the center of map *)
-  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, unit_size (), 2)
+  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, unit_size (), 1)
 
 module Point = struct
   type t = int * int
@@ -361,10 +361,10 @@ let get_path_dir map src dst =
   let man_dist (x0, y0) (x1, y1) = abs (x1 - x0) + abs (y1 - y0) in
   let to_ind (x, y) = (x * Array.length map.data) + y in
   let src, dst = apply to_canvas (src, dst) in
-  (* call on [spread] has parameter [man_dst] that is supplied an argument of
-     value less than the manhattan distance between [src] and [dst] (to approach
-     closer to [dst] from [src]) *)
-  let man_dist = man_dist src dst / 3 in
+  (* call on [spread] has parameter [man_dst] that is less than the manhattan
+     distance between [src] and [dst] (to approach closer to [dst] from
+     [src]) *)
+  let man_dist = man_dist src dst / 10 in
   !paths.(dst |> spread man_dist |> to_ind).(src |> to_ind)
 
 (*============================================================================*)

@@ -133,10 +133,10 @@ let movable_tests =
   [
     ( " sample test 0: camel speed on canvas before moving should be the \
        initialized \n\
-      \   speed of 3 "
-    >:: fun _ -> assert_equal 3 (Camel.speed camel_1) );
+      \   speed of 2 "
+    >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
     ( "sample test 1: Checking no matter what map the camels are on that their \
-       speed is at 3 this \n\
+       speed is at 2 this \n\
       \   tests the property of that speeds are identical throughout all maps \
        to ensure \n\
       \   fairness "
@@ -164,7 +164,7 @@ let movable_tests =
       \   the canvas that the speed remains the same given the fact the camel \
        has not picked\n\
       \   up any power ups yet"
-    >:: fun _ -> assert_equal 3 (Camel.speed camel_1) );
+    >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
     ( "sample test 5: same as sample test 2, but testing positions directly. \
        Note: the Camel.move from sample test 2 has already changed position of \
        camel, so no need to call it again. \n\
@@ -190,11 +190,11 @@ let movable_tests =
       \   the canvas that the speed remains the same given the fact the camel \
        has not picked\n\
       \   up any power ups yet"
-    >:: fun _ -> assert_equal 3 (Camel.speed camel_1) );
+    >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
     ( " sample test 9: human speed on canvas before moving should be the \
        initialized \n\
-      \   speed of 2 "
-    >:: fun _ -> assert_equal 2 (Human.speed human_1) );
+      \   speed of 1 "
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
     ( "sample test 10: human position on canvas after move with dir = (0,0) \
        does not change the final position of the human, this test ensures the \
        property \n\
@@ -227,7 +227,7 @@ let movable_tests =
       \   up any power ups yet since humans can not modify their own speed \
        since \n\
       \      they are not the players"
-    >:: fun _ -> assert_equal 2 (Human.speed human_1) );
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
     ( "sample test 14: testing that after moving with dir = (0,1) with hte \
        human on \n\
       \    the canvas that the position is no longer the same as the initial, \
@@ -250,7 +250,7 @@ let movable_tests =
       \   up any power ups yet since humans can not modify their own speed \
        since \n\
       \      they are not the players"
-    >:: fun _ -> assert_equal 2 (Human.speed human_1) );
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
     ( " sample test 17: Testing after moving with dir = (0,-1) with the human on\n\
       \  the canvas that the position is no longer the same as the initial, \n\
       \  this is given the fact that there is an open path for the human to \
@@ -265,7 +265,7 @@ let movable_tests =
       \   up any power ups yet since humans can not modify their own speed \
        since \n\
       \      they are not the players"
-    >:: fun _ -> assert_equal 2 (Human.speed human_1) );
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
     ( " sample test 19: Testing after moving with dir = (0,-1) with the camel on\n\
       \  the canvas that the position is no longer the same as the initial, \n\
       \  this is given the fact that there is an open path for the camel to \
@@ -285,7 +285,7 @@ let movable_tests =
       \   the canvas that the speed remains the same given the fact the camel \
        has not picked\n\
       \   up any power ups yet"
-    >:: fun _ -> assert_equal 3 (Camel.speed camel_1) );
+    >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
     ( " sample test 22: Testing after moving with dir = (-1,0) with the camel on\n\
       \  the canvas that the position is  the same as the initial, \n\
       \  this is given the fact that there is not an open path for the camel \
@@ -313,7 +313,7 @@ let movable_tests =
       \   the canvas that the speed remains the same given the fact the camel \
        has not picked\n\
       \   up any power ups yet"
-    >:: fun _ -> assert_equal 3 (Camel.speed camel_1) );
+    >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
     ( " sample test 26: Testing after moving with dir = (-1,-1) with the human \
        on \n\
       \    the canvas that the position is not the same as the initial, this \
@@ -338,7 +338,7 @@ let movable_tests =
       \   up any power ups yet since humans can not modify their own speed \
        since \n\
       \      they are not the players"
-    >:: fun _ -> assert_equal 2 (Human.speed human_1) );
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
     ( " sample test 29: Testing after moving with dir = (1,1) with the human on \n\
       \    the canvas that the position is not the same as the initial, this \
        is given the \n\
@@ -361,7 +361,7 @@ let movable_tests =
       \   up any power ups yet since humans can not modify their own speed \
        since \n\
       \      they are not the players"
-    >:: fun _ -> assert_equal 2 (Human.speed human_1) );
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
     ( " sample test 32: Testing after moving with dir = (1,-1) with the camel on \n\
       \    the canvas that the position is not the same as the initial, this \
        is given the \n\
@@ -381,7 +381,7 @@ let movable_tests =
       \   the canvas that the speed remains the same given the fact the camel \
        has not picked\n\
       \   up any power ups yet"
-    >:: fun _ -> assert_equal 3 (Camel.speed camel_1) );
+    >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
     ( " sample test 35: Testing after moving with dir = (1,-1) with the human on \n\
       \    the canvas that the position is the not same as the initial, this \
        is given the \n\
@@ -405,7 +405,7 @@ let movable_tests =
       \   up any power ups yet since humans can not modify their own speed \
        since \n\
       \      they are not the players"
-    >:: fun _ -> assert_equal 2 (Human.speed human_1) );
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
     ( " sample test 38: Testing moving for some (x,y) where y = 0 and x>1 to \
        test \n\
       \  how moving with x >1 results with the move function, this moves the \
@@ -429,7 +429,7 @@ let movable_tests =
       \   the canvas that the speed remains the same given the fact the camel \
        has not picked\n\
       \   up any power ups yet"
-    >:: fun _ -> assert_equal 3 (Camel.speed camel_1) );
+    >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
     ( " sample test 41: Testing moving for some (x,y) where x = 0 and y>1 to \
        test \n\
       \  how moving with y >1 results with the move function, this moves the \
@@ -453,7 +453,7 @@ let movable_tests =
       \   the canvas that the speed remains the same given the fact the camel \
        has not picked\n\
       \   up any power ups yet"
-    >:: fun _ -> assert_equal 3 (Camel.speed camel_1) );
+    >:: fun _ -> assert_equal 2 (Camel.speed camel_1) );
     ( " sample test 44: Testing moving for some (x,y) where y = 0 and x>1 to \
        test \n\
       \  how moving with x >1 results with the move function, this moves the \
@@ -480,7 +480,7 @@ let movable_tests =
       \   up any power ups yet since a human is not able to change their own \
        speed \n\
       \      but the player/camel must pick up a powerup for this to occur"
-    >:: fun _ -> assert_equal 2 (Human.speed human_1) );
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
     ( " sample test 47: Testing moving for some (x,y) where x = 0 and y>1 to \
        test \n\
       \  how moving with y >1 results with the move function, this moves the \
@@ -508,7 +508,7 @@ let movable_tests =
       \   up any power ups yet since a human is not able to change their own \
        speed \n\
       \      but the player/camel must pick up a powerup for this to occur"
-    >:: fun _ -> assert_equal 2 (Human.speed human_1) );
+    >:: fun _ -> assert_equal 1 (Human.speed human_1) );
   ]
 
 let item_tests = []
