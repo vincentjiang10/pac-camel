@@ -9,10 +9,6 @@ type state
 
 val init_state : unit -> state
 
-(** [reset state camel human_lst item_lst map] reset the game with provided
-    camel, huamns, and items on [map] *)
-val reset : state -> unit
-
 (** [current_state state] is the game state of [state] *)
 val current_state : state -> game_state
 
@@ -28,5 +24,32 @@ val state_time : int ref
 (* [!state_score] is the score counter for the current game *)
 val state_score : int ref
 
-(* [!state_human_scared] is either true or false *)
-val state_human_scared : bool ref
+(* [!state_lives] is the number of lives the camel has *)
+val state_lives : int ref
+
+(* [human_state] is the type containing possible human states *)
+type human_state = {
+  mutable scared : bool;
+  mutable halfSpeed : bool;
+  mutable goHome : bool;
+}
+
+(* [reset_state_human] resets human state *)
+val reset_state_human : unit
+
+(* [!state_human] is the current human state *)
+val state_human : human_state
+
+(* [camel_state] is the type containing possible camel states *)
+type camel_state = {
+  mutable doubleCoin : bool;
+  mutable doubleSpeed : bool;
+  mutable ignoreWalls : bool;
+  mutable invincible : bool;
+}
+
+(* [reset_state_camel] resets camel state *)
+val reset_state_camel : unit
+
+(* [!state_camel] is the current camel state *)
+val state_camel : camel_state

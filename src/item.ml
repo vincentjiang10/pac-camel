@@ -5,14 +5,12 @@ type item =
   | SmallCoin
   | Coins
   | Speed
-  | Traj
   | Sand
   | Phase
   | Cactus
-  | Tele
-  | Dim
   | Life
   | Time
+  | Invincible
 
 type t = {
   width : int;
@@ -20,8 +18,10 @@ type t = {
   probabilty : float;
   start_time : int;
   duration : int;
+  effect_duration : int;
   src : string;
-  effect : unit -> unit;
+  effect_start : unit -> unit;
+  effect_end : unit -> unit;
   animate : t ref -> unit;
   shift : int * int;
   item_type : item;
@@ -36,7 +36,11 @@ let src t = t.src
 (* will depend on State.state_time *)
 let animate t = !t.animate t
 let shift t = t.shift
-let effect t = t.effect ()
+
+let effect t =
+  t.effect_start ();
+  t.effect_end ()
+
 let item_type t = t.item_type
 let itemWidth = ref 0
 let itemHeight = ref 0
@@ -67,8 +71,10 @@ let commonItem () =
     start_time = !state_time;
     (* 20 seconds *)
     duration = 2000;
+    effect_duration = 10000;
     src = "";
-    effect = (fun () -> ());
+    effect_start = (fun () -> ());
+    effect_end = (fun () -> ());
     (* default animation *)
     animate = rotate_y !itemWidth;
     shift = (0, 0);
@@ -83,7 +89,11 @@ let bigCoin () =
   {
     commonItem with
     src = path ^ "coin.png";
-    effect = (fun () -> ());
+    effect_start =
+      (* amount state_score is incremented is dependent on camel state *)
+      (fun () ->
+        let incr = if state_camel.doubleCoin then 10 else 5 in
+        state_score := !state_score + incr);
     item_type = BigCoin;
   }
 
@@ -99,7 +109,10 @@ let smallCoin () =
     (* 1 minute *)
     duration = !state_end_time;
     src = path ^ "coin.png";
-    effect = (fun () -> incr state_score);
+    effect_start =
+      (fun () ->
+        let incr = if state_camel.doubleCoin then 2 else 1 in
+        state_score := !state_score + incr);
     item_type = SmallCoin;
   }
 
@@ -108,50 +121,67 @@ let smallCoin () =
 (* double coin values *)
 let coinsItem () =
   let commonItem = commonItem () in
-  { commonItem with src = ""; effect = (fun () -> ()); item_type = Coins }
+  {
+    commonItem with
+    src = "";
+    effect_start = (fun () -> state_camel.doubleCoin <- true);
+    effect_end = (fun () -> ());
+    item_type = Coins;
+  }
 
 (* doubles camel speed *)
 let speedItem () =
   let commonItem = commonItem () in
-  { commonItem with src = ""; effect = (fun () -> ()); item_type = Speed }
-
-(* show human trajectory *)
-let trajectoryItem () =
-  let commonItem = commonItem () in
-  { commonItem with src = ""; effect = (fun () -> ()); item_type = Traj }
+  {
+    commonItem with
+    src = "";
+    effect_start = (fun () -> state_camel.doubleSpeed <- true);
+    effect_end = (fun () -> ());
+    item_type = Speed;
+  }
 
 (* stuns players *)
 let sandItem () =
   let commonItem = commonItem () in
-  { commonItem with src = ""; effect = (fun () -> ()); item_type = Sand }
+  {
+    commonItem with
+    src = "";
+    effect_start = (fun () -> state_human.halfSpeed <- true);
+    effect_end = (fun () -> ());
+    item_type = Sand;
+  }
 
 (* allow phasing through walls *)
 let phaseItem () =
   let commonItem = commonItem () in
-  { commonItem with src = ""; effect = (fun () -> ()); item_type = Phase }
+  {
+    commonItem with
+    src = "";
+    effect_start = (fun () -> state_camel.ignoreWalls <- true);
+    effect_end = (fun () -> ());
+    item_type = Phase;
+  }
 
 (* scares away humans *)
 let cactusItem () =
   let commonItem = commonItem () in
-  { commonItem with src = ""; effect = (fun () -> ()); item_type = Cactus }
-
-(* teleports player to another teleportItem *)
-(* TODO: figure out how to handle multiple of these items. Either allow camel to
-   teleport to another random teleport item, or stricly allow only two teleport
-   items to exist at a time *)
-let teleportItem () =
-  let commonItem = commonItem () in
-  { commonItem with src = ""; effect = (fun () -> ()); item_type = Tele }
-
-(* dims the lighting of the map to only the camel (like a spotlight) *)
-let dimItem () =
-  let commonItem = commonItem () in
-  { commonItem with src = ""; effect = (fun () -> ()); item_type = Dim }
+  {
+    commonItem with
+    src = "";
+    effect_start = (fun () -> state_human.scared <- true);
+    effect_end = (fun () -> ());
+    item_type = Cactus;
+  }
 
 (* gives an additional life to the camel *)
 let lifeItem () =
   let commonItem = commonItem () in
-  { commonItem with src = ""; effect = (fun () -> ()); item_type = Life }
+  {
+    commonItem with
+    src = "";
+    effect_start = (fun () -> state_lives := max 3 (!state_lives + 1));
+    item_type = Life;
+  }
 
 (* gives additional time (10 seconds) until game round ends*)
 let timeItem () =
@@ -159,8 +189,19 @@ let timeItem () =
   {
     commonItem with
     src = "";
-    effect = (fun () -> state_time := !state_time + 1000);
+    effect_start = (fun () -> state_time := !state_time + 1000);
     item_type = Time;
+  }
+
+(* gives invincibility state *)
+let invincibleItem () =
+  let commonItem = commonItem () in
+  {
+    commonItem with
+    src = "";
+    effect_start = (fun () -> state_camel.invincible <- true);
+    effect_end = (fun () -> ());
+    item_type = Invincible;
   }
 
 let init_items (w, h) =
@@ -173,14 +214,12 @@ let init_item_list : (unit -> t) list =
     smallCoin;
     coinsItem;
     speedItem;
-    trajectoryItem;
     sandItem;
     phaseItem;
     cactusItem;
-    teleportItem;
-    dimItem;
     lifeItem;
     timeItem;
+    invincibleItem;
   ]
 
 (* finds the increasing cumulative sums of the probabilities of the items in

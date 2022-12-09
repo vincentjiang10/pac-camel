@@ -24,6 +24,7 @@ module MovableCommon = struct
   let pos t = t.pos
   let update_pos t p = t.pos <- p
   let speed t = t.speed
+  let set_speed t_ref speed = t_ref := { !t_ref with speed }
   let src t = t.src
   let size t = t.size
 
@@ -51,10 +52,8 @@ module Camel : Movable = struct
    * - on item expiration (TBD)
    *)
   include MovableCommon
-  (* type camel_state = { has_2x : bool } let state = ref { has_2x = false }*)
 
   let init map image =
-    (* let default_state = { has_2x = false } in state := default_state;*)
     let pos, size, speed = camel_ctx map in
     { pos; size; src = image; speed }
 
@@ -69,26 +68,9 @@ module Camel : Movable = struct
     match space with
     | Mass item_ref ->
         let item = !item_ref in
-        effect item;
         (* item effect logic *)
-        (* TODO: add possible changes due to items to game state (State.ml),
-           camel, and humans *)
-        begin
-          match item_type item with
-          | BigCoin -> ()
-          | SmallCoin -> ()
-          | Coins -> ()
-          | Speed -> ()
-          | Traj -> ()
-          | Sand -> ()
-          | Phase -> ()
-          | Cactus -> ()
-          | Tele -> ()
-          | Dim -> ()
-          | Life -> ()
-          | Time -> ()
-        end;
-        (* removes the coin at camel location in game board *)
+        effect item;
+        (* removes the item at camel location in game board *)
         remove_item map_ref p_new
     | Empty -> ()
 end
@@ -100,9 +82,6 @@ module Human : Movable = struct
    *)
   include MovableCommon
 
-  (* type human_state = { is_scared : bool }
-
-     let state = ref { is_scared = false } *)
   let index = ref 1
 
   let init map image =

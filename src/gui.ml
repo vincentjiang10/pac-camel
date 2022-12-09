@@ -199,9 +199,6 @@ let main () =
 
     Draw.set_color renderer bg;
 
-    (* TODO: @Vincent add collision effect between camel and humans: 1.) if
-       humans are scared, then make them go back to the home base and increment
-       score; 2.) lose a heart and activate human invincible mode *)
     go (Sdl.render_clear renderer);
     let x_c, y_c = Camel.pos camel in
     let w, h = Camel.size camel in
@@ -216,6 +213,11 @@ let main () =
 
     (* checks item expiration *)
     check_item_expiration map_ref;
+
+    (* TODO: testing states *)
+    "time: " ^ string_of_int !state_time ^ ", score: "
+    ^ string_of_int !state_score ^ ", lives: " ^ string_of_int !state_lives
+    |> print_endline;
 
     (* item rendering *)
     (* TODO @Yaqi: replace rectangles with images *)
@@ -244,14 +246,10 @@ let main () =
          the map. *)
 
       (* camel rendering logic *)
-      let render_camel () =
-        let x, y = Camel.pos camel in
-        go
-          (Sdl.render_copy
-             ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
-             renderer camel_texture)
-      in
-      render_camel ();
+      go
+        (Sdl.render_copy
+           ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
+           renderer camel_texture);
 
       let camel_spd = Camel.speed camel in
       let camel_period = 30 / camel_spd in
@@ -266,6 +264,33 @@ let main () =
           let w, h = Human.size !human in
           let render_human () =
             let x, y = Human.pos !human in
+            (* TODO: @Vincent add collision effect between camel and humans: 1.)
+               if humans are scared, then make them go back to the home base and
+               increment score; 2.) lose a heart and activate human invincible
+               mode *)
+            (* check for collision between camel and human *)
+            let thres = 10 in
+            let dist =
+              let xDiff = x_h - x_c in
+              let yDiff = y_h - y_c in
+              (xDiff * xDiff) + (yDiff * yDiff)
+            in
+            (* collision effect *)
+            if dist < thres then
+              if state_human.scared then begin
+                (* TODO: add notify score effect *)
+                state_score :=
+                  !state_score + if state_camel.doubleCoin then 20 else 10;
+                state_human.scared <- false;
+                (* TODO: set back false after reaching home *)
+                state_human.goHome <- true
+              end
+              else if not state_camel.invincible then begin
+                state_lives := !state_lives - 1;
+                (* TODO: check for game round end -> gameover and reset *)
+                if !state_lives = 0 then ();
+                state_camel.invincible <- true
+              end;
             go
               (Sdl.render_copy
                  ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))

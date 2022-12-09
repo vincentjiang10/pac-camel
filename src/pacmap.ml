@@ -365,7 +365,10 @@ let get_path_dir map src dst =
      distance between [src] and [dst] (to approach closer to [dst] from
      [src]) *)
   let man_dist = man_dist src dst / 10 in
-  !paths.(dst |> spread man_dist |> to_ind).(src |> to_ind)
+  apply
+    (* if human is scared, runs in the opposite direction *)
+    (( * ) (if state_human.scared then -1 else 1))
+    !paths.(dst |> spread man_dist |> to_ind).(src |> to_ind)
 
 (*============================================================================*)
 

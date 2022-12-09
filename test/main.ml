@@ -8,8 +8,8 @@ open Item
 open Pacmap
 open State
 open Bogue
-open Main
 open Tsdl
+open Main
 open Utils
 open Random
 module W = Widget

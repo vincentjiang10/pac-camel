@@ -12,14 +12,12 @@ type item =
   | SmallCoin
   | Coins
   | Speed
-  | Traj
   | Sand
   | Phase
   | Cactus
-  | Tele
-  | Dim
   | Life
   | Time
+  | Invincible
 
 (** [probability t] is the probability of [t] showing up in a game *)
 val probability : t -> float
@@ -30,13 +28,13 @@ val size : t -> int * int
 (** [startTime t] is the time that the item is created *)
 val startTime : t -> int
 
-(** [duration t] will output the duration of how long [t] will last for *)
+(** [duration t] will output the duration of how long [t] will last on the map *)
 val duration : t -> int
 
 (** [src t] is the image link of [t] *)
 val src : t -> string
 
-(** [effect t] is the effect of [t] *)
+(** [effect t] is the effect of [t]. Note: can modify states in [state] *)
 val effect : t -> unit
 
 (** [animate t] animates item by mutating its contents (width, height, etc) *)

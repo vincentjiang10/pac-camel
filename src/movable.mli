@@ -14,6 +14,9 @@ module type Movable = sig
   (** [speed t] is the speed of the object [t] that is in [0, 10] *)
   val speed : t -> int
 
+  (** [set_speed t] sets the speed of [!t] *)
+  val set_speed : t ref -> int -> unit
+
   (** [src t] is the src image of the object [t] *)
   val src : t -> string
 
