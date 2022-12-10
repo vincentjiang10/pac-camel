@@ -17,13 +17,40 @@ let width = 800
 let height = 800
 
 (* WIDGETS*)
-let start_title_w =
-  W.label ~size:32
-    ~fg:Draw.(opaque (find_color "firebrick"))
-    "The Pac-Camel Game"
+(* let start_title_w = W.label ~size:32 ~fg:Draw.(opaque (find_color
+   "firebrick")) "The Pac-Camel Game" *)
 
-let start_button_w = W.button "Press [s] to Start the Game"
+(* let start_button_w = W.button "Press [s] to Start the Game" *)
+(*camel lives *)
+let start = W.image "assets/images/start.png"
+let start_l = L.resident start
+let life1 = W.image "assets/images/camel.png" ~w:15 ~h:15
+let life2 = W.image "assets/images/camel.png" ~w:15 ~h:15 ~angle:10.0
+(* ~bg:Draw.(opaque black) *)
 
+let life3 = W.image "assets/images/camel.png" ~w:15 ~h:15 ~angle:20.0
+let score = ref 0
+
+let score_w =
+  W.label
+    ("Score: " ^ string_of_int !score)
+    ~fg:Draw.(opaque (find_color "black"))
+    ~size:10
+
+let score_l = L.resident score_w ~x:870 ~w:100 ~h:100 ~y:200
+
+(* STYLES*)
+let thick_grey_line =
+  Style.mk_line ~color:Draw.(opaque black) ~width:3 ~style:Solid ()
+
+let round_blue_box =
+  let open Style in
+  let border = mk_border ~radius:2 thick_grey_line in
+  create ~border ~background:(color_bg Draw.(opaque @@ find_color "black")) ()
+
+let bg_off = Style.color_bg Draw.none
+let bg_over = Some (Style.opaque_bg Draw.grey)
+let fg = Draw.(opaque black)
 (*LAYOUT*)
 
 (* TODO @GUI (optional): animate in the title + add hovering to buttons upon
@@ -31,8 +58,8 @@ let start_button_w = W.button "Press [s] to Start the Game"
 (* TODO (add keyboard options for quit (Q), play/pause (spacebar or P), and H (H
    or ?); these would trigger events that the buttons that they correspond to
    trigger *)
-let start_title_l = L.resident start_title_w ~y:2
-let start_button_l = L.resident ~x:30 ~y:35 ~w:250 ~h:2 start_button_w
+(* let start_title_l = L.resident start_title_w ~y:2 let start_button_l =
+   L.resident ~x:30 ~y:35 ~w:250 ~h:2 start_button_w *)
 
 (* TODO @GUI (post-MS2): Implement more widgets 
  *  - score displayer
@@ -45,7 +72,7 @@ let start_button_l = L.resident ~x:30 ~y:35 ~w:250 ~h:2 start_button_w
  *  - (optional) a speed and number of humans setting (set a minimum and maximum)
  *)
 
-let canvas = W.sdl_area ~w:800 ~h:800 ()
+let canvas = W.sdl_area ~w:800 ~h:800 ~style:round_blue_box ()
 let canvas_l = L.resident ~x:0 ~y:0 canvas
 let sdl_area = W.get_sdl_area canvas
 
@@ -65,6 +92,8 @@ let rec human_inits acc n =
       (n - 1)
 
 let human_ref_lst = ref (human_inits [] 4)
+
+(*Initialize game state*)
 let state = init_state ()
 
 let reset_map (seed : int) =
@@ -95,17 +124,42 @@ let reset_game seed =
 let bg = (255, 255, 255, 255)
 
 let make_greeting_board =
-  let greeting_layout = L.superpose [ start_title_l; start_button_l ] in
+  let greeting_layout = L.superpose [ start_l ] in
   L.set_width greeting_layout 800;
   L.set_height greeting_layout 800;
 
   of_layout greeting_layout
 
 let make_game_board =
+  let lives_l = L.flat_of_w [ life1; life2; life3 ] in
+  L.set_height lives_l 60;
+  L.set_width lives_l 150;
+  L.setx lives_l 850;
+  L.sety lives_l 150;
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  let layout = L.superpose [ canvas_l ] in
-  L.set_width layout 385;
+  let layout = L.superpose [ canvas_l; score_l; lives_l; Space.hfill () ] in
+  L.set_width layout 481;
+  L.set_height layout 385;
+  L.fix_content layout;
+  of_layout layout
+
+let make_finish_board =
+  let final_score =
+    W.label
+      ("Your Final Score is : " ^ string_of_int !score)
+      ~fg:Draw.(opaque (find_color "black"))
+      ~align:Center
+  in
+  let final_score_l = L.resident final_score ~x:15 ~y:25 in
+  let instruction =
+    W.label "Press [r] to restart"
+      ~fg:Draw.(opaque (find_color "black"))
+      ~align:Center
+  in
+  let instruction_l = L.resident instruction ~x:23 ~y:30 in
+  let layout = L.superpose [ final_score_l; instruction_l ] in
+  L.set_width layout 481;
   L.set_height layout 385;
   of_layout layout
 
@@ -117,7 +171,7 @@ let main () =
   go (Sdl.init Sdl.Init.video);
   let win =
     go
-      (Sdl.create_window ~w:800 ~h:800 "Pac-Camel Game"
+      (Sdl.create_window ~w:1000 ~h:800 "Pac-Camel Game"
          Sdl.Window.(shown + popup_menu))
   in
 
