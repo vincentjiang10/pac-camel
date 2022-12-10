@@ -29,7 +29,8 @@ let life2 = W.image "assets/images/camel.png" ~w:15 ~h:15 ~angle:10.0
 (* ~bg:Draw.(opaque black) *)
 
 let life3 = W.image "assets/images/camel.png" ~w:15 ~h:15 ~angle:20.0
-let score = ref 0
+let lives_w_ls = [ life1; life2; life3 ]
+let score = state_score
 
 let score_w =
   W.label
