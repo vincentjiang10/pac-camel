@@ -29,16 +29,18 @@ let state_lives = ref 3
 type human_state = {
   mutable scared : bool;
   mutable halfSpeed : bool;
-  mutable goHome : bool;
+  mutable doubleSpeed : bool;
 }
 
-let default_state_human = { scared = false; halfSpeed = false; goHome = false }
+let default_state_human =
+  { scared = false; halfSpeed = false; doubleSpeed = false }
+
 let state_human = default_state_human
 
-let reset_state_human =
+let reset_state_human () =
   state_human.scared <- default_state_human.scared;
   state_human.halfSpeed <- default_state_human.halfSpeed;
-  state_human.goHome <- default_state_human.goHome
+  state_human.doubleSpeed <- default_state_human.doubleSpeed
 
 (* Camel state *)
 
@@ -59,7 +61,7 @@ let default_state_camel =
 
 let state_camel = default_state_camel
 
-let reset_state_camel =
+let reset_state_camel () =
   state_camel.doubleCoin <- default_state_camel.doubleCoin;
   state_camel.doubleSpeed <- default_state_camel.doubleSpeed;
   state_camel.ignoreWalls <- default_state_camel.ignoreWalls;

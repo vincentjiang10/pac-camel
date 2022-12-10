@@ -31,11 +31,11 @@ val state_lives : int ref
 type human_state = {
   mutable scared : bool;
   mutable halfSpeed : bool;
-  mutable goHome : bool;
+  mutable doubleSpeed : bool;
 }
 
 (* [reset_state_human] resets human state *)
-val reset_state_human : unit
+val reset_state_human : unit -> unit
 
 (* [!state_human] is the current human state *)
 val state_human : human_state
@@ -49,7 +49,7 @@ type camel_state = {
 }
 
 (* [reset_state_camel] resets camel state *)
-val reset_state_camel : unit
+val reset_state_camel : unit -> unit
 
 (* [!state_camel] is the current camel state *)
 val state_camel : camel_state

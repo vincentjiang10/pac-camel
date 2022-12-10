@@ -65,6 +65,7 @@ let rec human_inits acc n =
       (n - 1)
 
 let human_ref_lst = ref (human_inits [] 4)
+let state = init_state ()
 
 let reset_map (seed : int) =
   (* reset canvas *)
@@ -77,12 +78,19 @@ let reset_map (seed : int) =
 let time_ref = ref 0
 let reset_time () = time_ref := Time.now ()
 
+(* reset states *)
+let reset_states () =
+  state_time := 0;
+  state_score := 0;
+  state_lives := 3;
+  reset_state_camel ();
+  reset_state_human ()
+
 (* sets up the game *)
 let reset_game seed =
   reset_map seed;
   reset_time ();
-  state_time := 0;
-  state_score := 0
+  reset_states ()
 
 let bg = (255, 255, 255, 255)
 
@@ -102,7 +110,6 @@ let make_game_board =
   of_layout layout
 
 let board = ref make_greeting_board
-let state = init_state ()
 
 let main () =
   let open Tsdl in
@@ -200,8 +207,6 @@ let main () =
     Draw.set_color renderer bg;
 
     go (Sdl.render_clear renderer);
-    let x_c, y_c = Camel.pos camel in
-    let w, h = Camel.size camel in
     (* replace render_fill_rect with rendering an image of a camel *)
     refresh_custom_windows !board;
 
@@ -217,6 +222,8 @@ let main () =
     (* TODO: testing states *)
     "time: " ^ string_of_int !state_time ^ ", score: "
     ^ string_of_int !state_score ^ ", lives: " ^ string_of_int !state_lives
+    ^ ", camel double speed: "
+    ^ string_of_bool state_camel.doubleSpeed
     |> print_endline;
 
     (* item rendering *)
@@ -246,10 +253,15 @@ let main () =
          the map. *)
 
       (* camel rendering logic *)
+      let x_c, y_c = Camel.pos camel in
+      let w, h = Camel.size camel in
       go
         (Sdl.render_copy
            ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
            renderer camel_texture);
+
+      (* check update on camel state *)
+      if state_camel.doubleSpeed then Camel.set_speed camel_ref 4;
 
       let camel_spd = Camel.speed camel in
       let camel_period = 30 / camel_spd in
@@ -278,17 +290,16 @@ let main () =
             (* collision effect *)
             if dist < thres then
               if state_human.scared then begin
-                (* TODO: add notify score effect *)
+                (* TODO: add notify score effect? *)
                 state_score :=
                   !state_score + if state_camel.doubleCoin then 20 else 10;
-                state_human.scared <- false;
-                (* TODO: set back false after reaching home *)
-                state_human.goHome <- true
+                state_human.doubleSpeed <- true
               end
               else if not state_camel.invincible then begin
                 state_lives := !state_lives - 1;
                 (* TODO: check for game round end -> gameover and reset *)
                 if !state_lives = 0 then ();
+                (* TODO: set countdown *)
                 state_camel.invincible <- true
               end;
             go

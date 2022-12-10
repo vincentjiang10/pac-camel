@@ -7,6 +7,7 @@ module type Movable = sig
 
   val pos : t -> int * int
   val speed : t -> int
+  val set_speed : t ref -> int -> unit
   val src : t -> string
   val size : t -> int * int
   val move : t ref -> Pacmap.t ref -> int * int -> (unit -> unit) -> unit
