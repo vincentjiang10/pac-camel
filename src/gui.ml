@@ -122,22 +122,27 @@ let main () =
   in
 
   let renderer = go (Sdl.create_renderer win) in
+  let load_texture src =
+    let surface = Tsdl_image.Image.load src in
+    let t = Sdl.create_texture_from_surface renderer (go surface) in
+    go t
+  in
 
   (* TODO @Yaqi: camel texture has a black background while human does not; try
      to fix that bug *)
-  let camel_texture =
-    let camel_surface = Tsdl_image.Image.load (Camel.src !camel_ref) in
-    let t = Sdl.create_texture_from_surface renderer (go camel_surface) in
-    go t
-  in
+  let camel_texture = load_texture (Camel.src !camel_ref) in
+  let coin_texture = load_texture "assets/images/items/coin.png" in
+  let coin_pile_texture = load_texture "assets/images/items/coin_pile.png" in
+  let phase_texture = load_texture "assets/images/items/potion.png" in
+  let sand_texture = load_texture "assets/images/items/sand.jpg" in
+  let human_texture = load_texture "assets/images/human.png" in
+  let heart_texture = load_texture "assets/images/items/heart.png" in
+  let speed_texture = load_texture "assets/images/items/speed.png" in
+  let time_texture = load_texture "assets/images/items/time.png" in
+  let cactus_texture = load_texture "assets/images/items/cactus.png" in
+  let shield_texture = load_texture "assets/images/items/shield.png" in
 
-  let human_texture =
-    let human_surface =
-      Tsdl_image.Image.load (Human.src !(List.hd !human_ref_lst))
-    in
-    let t = Sdl.create_texture_from_surface renderer (go human_surface) in
-    go t
-  in
+  let camel_facing = ref false in
   (* very important: set blend mode: *)
   go (Sdl.set_render_draw_blend_mode renderer Sdl.Blend.mode_blend);
 
@@ -167,9 +172,11 @@ let main () =
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.down ->
              move_check (0, 1)
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.right ->
-             move_check (1, 0)
+             move_check (1, 0);
+             camel_facing := false
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.left ->
-             move_check (-1, 0)
+             move_check (-1, 0);
+             camel_facing := true
          | `Key_down
            when List.mem
                   Sdl.Event.(get e keyboard_keycode)
@@ -245,7 +252,20 @@ let main () =
           in
           let x_shift, y_shift = Item.shift !item_ref in
           let loc = (x + x_shift, y + y_shift) in
-          go (Sdl.render_fill_rect renderer (Some (new_rect size loc)))
+          let texture =
+            match Item.item_type !item_ref with
+            | SmallCoin | BigCoin -> coin_texture
+            | Coins -> coin_pile_texture
+            | Speed -> speed_texture
+            | Sand -> sand_texture
+            | Phase -> phase_texture
+            | Cactus -> cactus_texture
+            | Life -> heart_texture
+            | Time -> time_texture
+            | Invincible -> shield_texture
+          in
+
+          go (Sdl.render_copy ?dst:(Some (new_rect size loc)) renderer texture)
           |> ignore)
         item_list;
 
@@ -255,10 +275,11 @@ let main () =
       (* camel rendering logic *)
       let x_c, y_c = Camel.pos camel in
       let w, h = Camel.size camel in
+      let flip = if !camel_facing then Sdl.Flip.horizontal else Sdl.Flip.none in
       go
-        (Sdl.render_copy
+        (Sdl.render_copy_ex
            ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
-           renderer camel_texture);
+           renderer camel_texture 0. None flip);
 
       (* check update on camel state *)
       if state_camel.doubleSpeed then Camel.set_speed camel_ref 4;
