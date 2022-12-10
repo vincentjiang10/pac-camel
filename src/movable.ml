@@ -7,7 +7,6 @@ module type Movable = sig
 
   val pos : t -> int * int
   val speed : t -> int
-  val set_speed : t ref -> int -> unit
   val src : t -> string
   val size : t -> int * int
   val move : t ref -> Pacmap.t ref -> int * int -> (unit -> unit) -> unit
@@ -25,7 +24,6 @@ module MovableCommon = struct
   let pos t = t.pos
   let update_pos t p = t.pos <- p
   let speed t = t.speed
-  let set_speed t_ref speed = t_ref := { !t_ref with speed }
   let src t = t.src
   let size t = t.size
 

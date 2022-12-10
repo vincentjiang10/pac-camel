@@ -48,7 +48,9 @@ let find_move map p_from dir =
   let p_to = dir |> apply (( * ) !scale_x) |> add p_from in
   let x, y = p_to |> to_canvas |> apply bound in
   match map.data.(x).(y) with
-  | Wall -> (p_from, Empty)
+  | Wall ->
+      if state_camel.ignoreWalls then (to_sdl_area (x, y), Empty)
+      else (p_from, Empty)
   | Floor space -> (to_sdl_area (x, y), space)
 
 let valid_xy s (x, y) = min x y >= 0 && max x y < s
@@ -364,9 +366,9 @@ let get_path_dir map src dst =
   (* call on [spread] has parameter [man_dst] that is less than the manhattan
      distance between [src] and [dst] (to approach closer to [dst] from
      [src]) *)
-  let man_dist = man_dist src dst / 10 in
-  (* TODO: if human is scared, runs in the opposite direction towards the
-     center *)
+  (* TODO: resolve collision logic (set scared state to false, etc) when src is
+     near center *)
+  let man_dist = if state_human.scared then 0 else man_dist src dst / 10 in
   !paths.(dst |> spread man_dist |> to_ind).(src |> to_ind)
 
 (*============================================================================*)
@@ -374,7 +376,7 @@ let get_path_dir map src dst =
 (* Creates a pacmap with random odd size *)
 let gen_map seed sdl_area =
   init seed;
-  let s = (int 20 * 2) + 30 in
+  let s = (int 15 * 2) + 30 in
   (* reset end time to be dependent on n^2, where n is the size of the map *)
   state_end_time := s * s * 5;
   let data = Array.make_matrix s s (Floor Empty) in

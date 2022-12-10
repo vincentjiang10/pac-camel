@@ -32,15 +32,12 @@ type human_state = {
   mutable doubleSpeed : bool;
 }
 
-let default_state_human =
-  { scared = false; halfSpeed = false; doubleSpeed = false }
-
-let state_human = default_state_human
+let state_human = { scared = false; halfSpeed = false; doubleSpeed = false }
 
 let reset_state_human () =
-  state_human.scared <- default_state_human.scared;
-  state_human.halfSpeed <- default_state_human.halfSpeed;
-  state_human.doubleSpeed <- default_state_human.doubleSpeed
+  state_human.scared <- false;
+  state_human.halfSpeed <- false;
+  state_human.doubleSpeed <- false
 
 (* Camel state *)
 
@@ -51,7 +48,7 @@ type camel_state = {
   mutable invincible : bool;
 }
 
-let default_state_camel =
+let state_camel =
   {
     doubleCoin = false;
     doubleSpeed = false;
@@ -59,10 +56,8 @@ let default_state_camel =
     invincible = false;
   }
 
-let state_camel = default_state_camel
-
 let reset_state_camel () =
-  state_camel.doubleCoin <- default_state_camel.doubleCoin;
-  state_camel.doubleSpeed <- default_state_camel.doubleSpeed;
-  state_camel.ignoreWalls <- default_state_camel.ignoreWalls;
-  state_camel.invincible <- default_state_camel.invincible
+  state_camel.doubleCoin <- false;
+  state_camel.doubleSpeed <- false;
+  state_camel.ignoreWalls <- false;
+  state_camel.invincible <- false

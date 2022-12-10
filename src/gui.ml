@@ -242,18 +242,19 @@ let main () =
     if current_state state != Inactive then (
       List.iter
         (fun ((x, y), item_ref) ->
-          let size = Item.size !item_ref in
+          let item = !item_ref in
+          let size = Item.size item in
           let x, y =
-            match Item.item_type !item_ref with
+            match Item.item_type item with
             | SmallCoin ->
                 let x_u, y_u = unit_size () in
                 (x + (x_u / 4), y + (y_u / 4))
             | _ -> (x, y)
           in
-          let x_shift, y_shift = Item.shift !item_ref in
+          let x_shift, y_shift = Item.shift item in
           let loc = (x + x_shift, y + y_shift) in
           let texture =
-            match Item.item_type !item_ref with
+            match Item.item_type item with
             | SmallCoin | BigCoin -> coin_texture
             | Coins -> coin_pile_texture
             | Speed -> speed_texture
@@ -265,8 +266,13 @@ let main () =
             | Invincible -> shield_texture
           in
 
-          go (Sdl.render_copy ?dst:(Some (new_rect size loc)) renderer texture)
+          if fst size = 0 then Item.change_flip item_ref;
+          (* TODO (extra): change rotation when size falls below threshold *)
+          Sdl.render_copy_ex
+            ?dst:(Some (new_rect size loc))
+            renderer texture 0. None (Item.flip item)
           |> ignore)
+        (* add additional flip data to each pair *)
         item_list;
 
       (* Camel and human rendering happens after fps so that they are on top of
@@ -278,13 +284,13 @@ let main () =
       let flip = if !camel_facing then Sdl.Flip.horizontal else Sdl.Flip.none in
       go
         (Sdl.render_copy_ex
-           ?dst:(Some (Sdl.Rect.create ~x:x_c ~y:y_c ~w ~h))
+           ?dst:(Some (new_rect (w, h) (x_c, y_c)))
            renderer camel_texture 0. None flip);
 
       (* check update on camel state *)
-      if state_camel.doubleSpeed then Camel.set_speed camel_ref 4;
-
-      let camel_spd = Camel.speed camel in
+      let camel_spd =
+        (if state_camel.doubleSpeed then 2 else 1) * Camel.speed camel
+      in
       let camel_period = 30 / camel_spd in
       if camel_spd <> 0 && !state_time mod camel_period = 0 then
         Camel.move camel_ref map_ref camel_dir (fun () -> ());
@@ -328,9 +334,18 @@ let main () =
                  ?dst:(Some (Sdl.Rect.create ~x ~y ~w ~h))
                  renderer human_texture)
           in
-          (* TODO: increase inversely proportional to number of coins (retrieved
-             from State) *)
-          let human_spd = Human.speed !human in
+          let human_spd =
+            (* human speed increases with score *)
+            (Human.speed !human |> float_of_int)
+            *. (1. +. ((!state_score |> float_of_int) /. 200.))
+            |> int_of_float
+          in
+          (* check if state_human.halfSpeed or doubleSpeed is true *)
+          let human_spd =
+            if state_human.doubleSpeed then 2 * human_spd
+            else if state_human.halfSpeed then max (human_spd / 2) 1
+            else human_spd
+          in
           let human_period = 30 / human_spd in
           (if
            human_spd <> 0
@@ -339,6 +354,7 @@ let main () =
            && (x_h <> x_c || y_h <> y_c)
            && current_state state = Active
           then
+           (* TODO: change direction if state_human.scared *)
            let dir = get_path_dir map (x_h, y_h) (x_c, y_c) in
            Human.move human map_ref dir render_human);
           render_human ())

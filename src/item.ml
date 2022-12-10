@@ -24,6 +24,7 @@ type t = {
   effect_end : unit -> unit;
   animate : t ref -> unit;
   shift : int * int;
+  flip : Tsdl.Sdl.flip;
   item_type : item;
 }
 
@@ -41,6 +42,7 @@ let effect t =
   t.effect_start ();
   t.effect_end ()
 
+let flip t = t.flip
 let item_type t = t.item_type
 let itemWidth = ref 0
 let itemHeight = ref 0
@@ -61,6 +63,15 @@ let rotate_y max_size item_ref =
   (* x-coordinate of item location is moved half of size dilation *)
   let shift = ((max_size - width) / 2, 0) in
   item_ref := { item with width; shift }
+
+let change_flip item_ref =
+  let item = !item_ref in
+  item_ref :=
+    {
+      item with
+      flip = Tsdl.Sdl.Flip.(if item.flip = none then horizontal else none);
+    }
+
 (*============================================================================*)
 
 let commonItem () =
@@ -78,6 +89,7 @@ let commonItem () =
     (* default animation *)
     animate = rotate_y !itemWidth;
     shift = (0, 0);
+    flip = Tsdl.Sdl.Flip.none;
     item_type = Life;
   }
 
@@ -92,7 +104,7 @@ let bigCoin () =
     effect_start =
       (* amount state_score is incremented is dependent on camel state *)
       (fun () ->
-        let incr = if state_camel.doubleCoin then 10 else 5 in
+        let incr = if state_camel.doubleCoin then 50 else 25 in
         state_score := !state_score + incr);
     item_type = BigCoin;
   }
@@ -179,7 +191,7 @@ let lifeItem () =
   {
     commonItem with
     src = "";
-    effect_start = (fun () -> state_lives := max 3 (!state_lives + 1));
+    effect_start = (fun () -> state_lives := min 3 (!state_lives + 1));
     item_type = Life;
   }
 
@@ -189,7 +201,7 @@ let timeItem () =
   {
     commonItem with
     src = "";
-    effect_start = (fun () -> state_time := !state_time + 1000);
+    effect_start = (fun () -> state_end_time := !state_end_time + 1000);
     item_type = Time;
   }
 
