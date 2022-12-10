@@ -29,7 +29,12 @@ let life2 = W.image "assets/images/camel.png" ~w:15 ~h:15 ~angle:10.0
 (* ~bg:Draw.(opaque black) *)
 
 let life3 = W.image "assets/images/camel.png" ~w:15 ~h:15 ~angle:20.0
-let lives_w_ls = [ life1; life2; life3 ]
+let lives_ls = ref [ L.resident life1; L.resident life2; L.resident life3 ]
+
+let cut = function
+  | [] -> []
+  | _ :: xs -> xs
+
 let score = state_score
 
 let score_w =
@@ -131,15 +136,16 @@ let make_greeting_board =
 
   of_layout greeting_layout
 
+let lives_l = L.flat_of_w [ life1; life2; life3 ]
+
 let make_game_board =
-  let lives_l = L.flat_of_w [ life1; life2; life3 ] in
   L.set_height lives_l 60;
   L.set_width lives_l 150;
   L.setx lives_l 850;
   L.sety lives_l 150;
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  let layout = L.superpose [ canvas_l; score_l; lives_l; Space.hfill () ] in
+  let layout = L.superpose [ canvas_l; score_l; Space.hfill () ] in
   L.set_width layout 481;
   L.set_height layout 385;
   L.fix_content layout;
@@ -288,13 +294,16 @@ let main () =
     ^ string_of_bool state_camel.doubleSpeed
     |> print_endline;
 
+    print_endline (string_of_int (List.length !lives_ls));
+
+    W.set_text score_w ("Score: " ^ string_of_int !state_score);
     (* item rendering *)
     (* TODO @Yaqi: replace rectangles with images *)
     let item_list = get_items map in
     let new_rect (w, h) (x, y) = Sdl.Rect.create ~x ~y ~w ~h in
     Draw.set_color renderer (100, 200, 200, 255);
 
-    if current_state state != Inactive then (
+    if current_state state = Active || current_state state = Pause then (
       List.iter
         (fun ((x, y), item_ref) ->
           let item = !item_ref in
@@ -379,8 +388,11 @@ let main () =
               end
               else if not state_camel.invincible then begin
                 state_lives := !state_lives - 1;
+
+                (* change_state state Pause; *)
+
                 (* TODO: check for game round end -> gameover and reset *)
-                if !state_lives = 0 then ();
+                if !state_lives = 0 then change_state state Pause;
                 (* TODO: set countdown *)
                 state_camel.invincible <- true
               end;
@@ -413,7 +425,22 @@ let main () =
            let dir = get_path_dir map (x_h, y_h) (x_c, y_c) in
            Human.move human map_ref dir render_human);
           render_human ())
-        humans);
+        humans;
+      if !state_lives > 0 then
+        go
+          (Sdl.render_copy
+             ?dst:(Some (Sdl.Rect.create ~x:850 ~y:150 ~w:40 ~h:40))
+             renderer camel_texture);
+      if !state_lives > 1 then
+        go
+          (Sdl.render_copy
+             ?dst:(Some (Sdl.Rect.create ~x:890 ~y:150 ~w:40 ~h:40))
+             renderer camel_texture);
+      if !state_lives > 2 then
+        go
+          (Sdl.render_copy
+             ?dst:(Some (Sdl.Rect.create ~x:930 ~y:150 ~w:40 ~h:40))
+             renderer camel_texture));
 
     if current_state state = Active then begin
       (* add possible item to map_ref *)
@@ -429,13 +456,14 @@ let main () =
       go
         (Sdl.render_fill_rect renderer
            (Some (Sdl.Rect.create ~x:0 ~y:0 ~w:800 ~h:800))));
+
     Sdl.render_present renderer;
     mainloop e
   in
-
   let e = Sdl.Event.create () in
   start_fps ();
-  let () = try mainloop e with _ -> exit 0 in
+  (* let () = try mainloop e with _ -> exit 0 in *)
+  let () = mainloop e in
   Sdl.destroy_window win;
   Draw.quit ()
 
