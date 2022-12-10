@@ -1,0 +1,32 @@
+---
+# Members of your group.
+group:
+  - name: Yaqi Gao
+    netid: yg298
+  - name: Yao Wu
+    netid: yw582
+  - name: Vincent Jiang
+    netid: vj68
+  - name: Bahaa Kotb
+    netid: bmk89
+# Your PM.
+pm:
+  name: Allison Liu
+  netid: al843
+# Set to false if you don't want your gallery entry to be public.
+publish: false
+# Pithy title
+title: "Pac Camel"
+# OK if this is a Cornell Github link, but public gallery viewers won't be able to see it.
+git-repo: "https://github.com/vjiang10/pac-camel"
+# If you have no demo screencast, replace the url string with an empty string ""
+demo-video-url: ""
+# Write a short, attention-grabbing description of your project.
+desc: >
+  We are recreating a Camel version of Pac-Man: Pac-Camel. In our version, the 
+  ghosts are camels. The features includedes random map generation, level difficulty,
+  controls and movements, power-ups and items, graphics, design and animation. 
+
+  The user of our game can easily control the camel with arrow keys and the 
+  instructions on the window will ensure the user can easily know how to play 
+  our game.
