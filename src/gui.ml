@@ -388,9 +388,7 @@ let main () =
               end
               else if not state_camel.invincible then begin
                 state_lives := !state_lives - 1;
-
-                (* change_state state Pause; *)
-
+                change_state state Pause;
                 (* TODO: check for game round end -> gameover and reset *)
                 if !state_lives = 0 then change_state state Pause;
                 (* TODO: set countdown *)
