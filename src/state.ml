@@ -18,6 +18,7 @@ let current_state st = !st
 
 (* default: 1 minute *)
 let state_end_time = ref 6000
+(*TODO: add a widget for this, endtime - current time*)
 
 (* Game round ends when state_time reaches state_end_time *)
 let state_time = ref 0
