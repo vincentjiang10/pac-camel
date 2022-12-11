@@ -12,7 +12,6 @@ module L = Layout
 module T = Trigger
 
 (* SETUP *)
-
 let width = 800
 let height = 800
 
@@ -26,16 +25,9 @@ let start = W.image "assets/images/start.png"
 let start_l = L.resident start
 let life1 = W.image "assets/images/camel.png" ~w:15 ~h:15
 let life2 = W.image "assets/images/camel.png" ~w:15 ~h:15 ~angle:10.0
-(* ~bg:Draw.(opaque black) *)
-
 let life3 = W.image "assets/images/camel.png" ~w:15 ~h:15 ~angle:20.0
-let lives_ls = ref [ L.resident life1; L.resident life2; L.resident life3 ]
-
-let cut = function
-  | [] -> []
-  | _ :: xs -> xs
-
 let score = state_score
+let final_score = ref 0
 
 let score_w =
   W.label
@@ -43,9 +35,16 @@ let score_w =
     ~fg:Draw.(opaque (find_color "black"))
     ~size:10
 
-let score_l = L.resident score_w ~x:870 ~w:100 ~h:100 ~y:200
+let score_l = L.resident score_w ~x:830 ~w:100 ~h:100 ~y:200
 
-(* STYLES*)
+let display_time =
+  W.label
+    ("Timer: " ^ string_of_int ((!state_end_time - !state_time) / 100))
+    ~fg:Draw.(opaque (find_color "black"))
+    ~size:10
+
+let display_time_l = L.resident display_time ~x:830 ~w:100 ~h:100 ~y:300
+
 let thick_grey_line =
   Style.mk_line ~color:Draw.(opaque black) ~width:3 ~style:Solid ()
 
@@ -117,7 +116,7 @@ let reset_time () = time_ref := Time.now ()
 let reset_states () =
   state_time := 0;
   state_score := 0;
-  state_lives := 3;
+  state_lives := 1;
   reset_state_camel ();
   reset_state_human ()
 
@@ -145,27 +144,49 @@ let make_game_board =
   L.sety lives_l 150;
   (* set what to be drawn *)
   (* TODO @GUI: clicking on widgets do not work: try to fix *)
-  let layout = L.superpose [ canvas_l; score_l; Space.hfill () ] in
+  let layout =
+    L.superpose [ canvas_l; score_l; display_time_l; Space.hfill () ]
+  in
   L.set_width layout 481;
   L.set_height layout 385;
   L.fix_content layout;
   of_layout layout
 
-let make_finish_board =
-  let final_score =
-    W.label
-      ("Your Final Score is : " ^ string_of_int !score)
-      ~fg:Draw.(opaque (find_color "black"))
-      ~align:Center
-  in
+let final_score =
+  W.label
+    ("Your Final Score is : " ^ string_of_int !score)
+    ~fg:Draw.(opaque (find_color "white"))
+    ~align:Center
+
+let make_win_board =
   let final_score_l = L.resident final_score ~x:15 ~y:25 in
   let instruction =
     W.label "Press [r] to restart"
-      ~fg:Draw.(opaque (find_color "black"))
+      ~fg:Draw.(opaque (find_color "white"))
       ~align:Center
   in
   let instruction_l = L.resident instruction ~x:23 ~y:30 in
   let layout = L.superpose [ final_score_l; instruction_l ] in
+  L.set_width layout 481;
+  L.set_height layout 385;
+  of_layout layout
+
+let make_lose_board =
+  let final_score_l = L.resident final_score ~x:15 ~y:25 in
+  let instruction =
+    W.label "Press [r] to restart"
+      ~fg:Draw.(opaque (find_color "white"))
+      ~align:Center
+  in
+  let p = Image.create ~bg:Draw.(opaque white) "assets/images/start.png" in
+  let instruction_l = L.resident instruction ~x:23 ~y:30 in
+  let layout =
+    L.superpose
+      [ final_score_l; instruction_l ]
+      (* ~background: (L.style_bg (Style.create ~background:(Style.opaque_bg
+         Draw.black) ())) *)
+      ~background:(L.style_bg (Style.create ~background:(Style.image_bg p) ()))
+  in
   L.set_width layout 481;
   L.set_height layout 385;
   of_layout layout
@@ -242,7 +263,6 @@ let main () =
            when List.mem
                   Sdl.Event.(get e keyboard_keycode)
                   [ Sdl.K.r; Sdl.K.space ] ->
-             print_endline "restart";
              camel_dir_ref := (0, 0);
              reset_game (int 10000)
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.p ->
@@ -251,7 +271,6 @@ let main () =
      | Inactive -> (
          match Trigger.event_kind e with
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
-             print_endline "game start";
              camel_dir_ref := (0, 0);
              let change_board () =
                board := make_game_board;
@@ -269,6 +288,36 @@ let main () =
          match Trigger.event_kind e with
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.p ->
              change_state state Active
+         | _ -> ())
+     | Win -> (
+         match Trigger.event_kind e with
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.r ->
+             let change_board () =
+               board := make_game_board;
+               change_state state Active
+             in
+             (* let th : Thread.t = Thread.create Sync.push change_board in *)
+             let th : Thread.t = Thread.create change_board () in
+             Thread.join th;
+             let make_window () = make_sdl_windows ~windows:[ win ] !board in
+             let th2 : Thread.t = Thread.create make_window () in
+             Thread.join th2;
+             reset_game (int 10000)
+         | _ -> ())
+     | Lose -> (
+         match Trigger.event_kind e with
+         | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.r ->
+             let change_board () =
+               board := make_game_board;
+               change_state state Active
+             in
+             (* let th : Thread.t = Thread.create Sync.push change_board in *)
+             let th : Thread.t = Thread.create change_board () in
+             Thread.join th;
+             let make_window () = make_sdl_windows ~windows:[ win ] !board in
+             let th2 : Thread.t = Thread.create make_window () in
+             Thread.join th2;
+             reset_game (int 10000)
          | _ -> ())
      | _ -> ());
 
@@ -293,8 +342,6 @@ let main () =
     ^ ", camel double speed: "
     ^ string_of_bool state_camel.doubleSpeed
     |> print_endline;
-
-    print_endline (string_of_int (List.length !lives_ls));
 
     W.set_text score_w ("Score: " ^ string_of_int !state_score);
     (* item rendering *)
@@ -390,7 +437,18 @@ let main () =
                 state_lives := !state_lives - 1;
                 change_state state Pause;
                 (* TODO: check for game round end -> gameover and reset *)
-                if !state_lives = 0 then change_state state Pause;
+                if !state_lives = 0 then (
+                  W.set_text final_score
+                    ("Your Final Score is : " ^ string_of_int !state_score);
+                  change_state state Lose;
+                  let change_board () = board := make_lose_board in
+                  let th3 : Thread.t = Thread.create change_board () in
+                  Thread.join th3;
+                  let make_window () =
+                    make_sdl_windows ~windows:[ win ] !board
+                  in
+                  let th2 : Thread.t = Thread.create make_window () in
+                  Thread.join th2);
                 (* TODO: set countdown *)
                 state_camel.invincible <- true
               end;
@@ -446,7 +504,9 @@ let main () =
       (* animate items *)
       animate_items (item_list |> List.map (fun (_, item_ref) -> item_ref));
       (* update time counter *)
-      incr state_time
+      incr state_time;
+      W.set_text display_time
+        ("Timer: " ^ string_of_int ((!state_end_time - !state_time) / 100))
     end;
 
     if current_state state = Pause then (
@@ -460,6 +520,7 @@ let main () =
   in
   let e = Sdl.Event.create () in
   start_fps ();
+  (*TODO: change this line back*)
   (* let () = try mainloop e with _ -> exit 0 in *)
   let () = mainloop e in
   Sdl.destroy_window win;
