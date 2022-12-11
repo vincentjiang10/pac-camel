@@ -200,7 +200,7 @@ let make_lose_board =
       ~align:Center
   in
   let p = Image.create ~bg:Draw.(opaque white) "assets/images/lose.png" in
-  let instruction_l = L.resident instruction ~x:85 ~y:35 in
+  let instruction_l = L.resident instruction ~x:90 ~y:35 in
   let layout =
     L.superpose
       [ final_score_l; instruction_l ]
@@ -214,7 +214,7 @@ let make_lose_board =
   L.set_height layout 385;
   of_layout layout
 
-let board = ref make_lose_board
+let board = ref make_greeting_board
 
 (*Helper functions to change board*)
 let change_game_board () =
