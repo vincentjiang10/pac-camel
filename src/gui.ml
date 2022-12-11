@@ -103,7 +103,7 @@ let rec human_inits acc n =
       (ref (Human.init !map_ref "assets/images/human.png") :: acc)
       (n - 1)
 
-let human_ref_lst = ref (human_inits [] 4)
+let human_ref_lst = ref (List.rev (human_inits [] 4))
 
 (*Initialize game state*)
 let state = init_state ()
@@ -355,12 +355,9 @@ let main () =
     check_item_expiration map_ref;
 
     (* TODO: testing states *)
-    "time: " ^ string_of_int !state_time ^ ", score: "
-    ^ string_of_int !state_score ^ ", lives: " ^ string_of_int !state_lives
-    ^ ", camel double speed: "
-    ^ string_of_bool state_camel.doubleSpeed
-    |> print_endline;
-
+    (* "time: " ^ string_of_int !state_time ^ ", score: " ^ string_of_int
+       !state_score ^ ", lives: " ^ string_of_int !state_lives ^ ", camel double
+       speed: " ^ string_of_bool state_camel.doubleSpeed |> print_endline; *)
     W.set_text score_w ("Score: " ^ string_of_int !state_score);
     (* item rendering *)
     (* TODO @Yaqi: replace rectangles with images *)
@@ -395,13 +392,10 @@ let main () =
             | Invincible -> shield_texture
           in
 
-          if fst size = 0 then Item.change_flip item_ref;
-          (* TODO (extra): change rotation when size falls below threshold *)
           Sdl.render_copy_ex
             ?dst:(Some (new_rect size loc))
             renderer texture 0. None (Item.flip item)
           |> ignore)
-        (* add additional flip data to each pair *)
         item_list;
 
       (* Camel and human rendering happens after fps so that they are on top of
@@ -411,10 +405,15 @@ let main () =
       let x_c, y_c = Camel.pos camel in
       let w, h = Camel.size camel in
       let flip = if !camel_facing then Sdl.Flip.horizontal else Sdl.Flip.none in
-      go
-        (Sdl.render_copy_ex
-           ?dst:(Some (new_rect (w, h) (x_c, y_c)))
-           renderer camel_texture 0. None flip);
+      let blinkPeriod = 20 in
+      if
+        (not state_camel.invincible)
+        || !state_time mod blinkPeriod < blinkPeriod / 2
+      then
+        go
+          (Sdl.render_copy_ex
+             ?dst:(Some (new_rect (w, h) (x_c, y_c)))
+             renderer camel_texture 0. None flip);
 
       (* check update on camel state *)
       let camel_spd =
@@ -432,12 +431,8 @@ let main () =
           let w, h = Human.size !human in
           let render_human () =
             let x, y = Human.pos !human in
-            (* TODO: @Vincent add collision effect between camel and humans: 1.)
-               if humans are scared, then make them go back to the home base and
-               increment score; 2.) lose a heart and activate human invincible
-               mode *)
             (* check for collision between camel and human *)
-            let thres = 10 in
+            let thres = 100 in
             let dist =
               let xDiff = x_h - x_c in
               let yDiff = y_h - y_c in
@@ -449,7 +444,11 @@ let main () =
                 (* TODO: add notify score effect? *)
                 state_score :=
                   !state_score + if state_camel.doubleCoin then 20 else 10;
-                state_human.doubleSpeed <- true
+                state_human.doubleSpeed <- true;
+                (* set false after 5 seconds *)
+                Item.make_effect 5.
+                  (fun () -> state_human.doubleSpeed <- false)
+                  ()
               end
               else if not state_camel.invincible then begin
                 state_lives := !state_lives - 1;
@@ -467,8 +466,11 @@ let main () =
                   in
                   let th2 : Thread.t = Thread.create make_window () in
                   Thread.join th2);
-                (* TODO: set countdown *)
-                state_camel.invincible <- true
+                state_camel.invincible <- true;
+                (* set false after 5 seconds *)
+                Item.make_effect 5.
+                  (fun () -> state_camel.invincible <- false)
+                  ()
               end;
             go
               (Sdl.render_copy
@@ -483,9 +485,11 @@ let main () =
           in
           (* check if state_human.halfSpeed or doubleSpeed is true *)
           let human_spd =
-            if state_human.doubleSpeed then 2 * human_spd
-            else if state_human.halfSpeed then max (human_spd / 2) 1
-            else human_spd
+            (* maximum speed set to 10 *)
+            min 10
+              (if state_human.doubleSpeed then 2 * human_spd
+              else if state_human.halfSpeed then max (human_spd / 2) 1
+              else human_spd)
           in
           let human_period = 30 / human_spd in
           (if
@@ -495,8 +499,10 @@ let main () =
            && (x_h <> x_c || y_h <> y_c)
            && current_state state = Active
           then
-           (* TODO: change direction if state_human.scared *)
-           let dir = get_path_dir map (x_h, y_h) (x_c, y_c) in
+           let dest =
+             if state_human.scared then human_init_pos map i else (x_c, y_c)
+           in
+           let dir = get_path_dir map (x_h, y_h) dest in
            Human.move human map_ref dir render_human);
           render_human ())
         humans;

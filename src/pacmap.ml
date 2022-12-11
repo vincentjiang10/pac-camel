@@ -61,10 +61,12 @@ let unit_size () =
 
 let camel_ctx t = (t.start, unit_size (), 2)
 
-let human_ctx t ind =
+let human_init_pos t ind =
   let w, h = t.size in
   (* set initial position of humans to the center of map *)
-  (((w / 2) - 2 + ind, h / 2) |> to_sdl_area, unit_size (), 1)
+  ((w / 2) - 2 + ind, h / 2) |> to_sdl_area
+
+let human_ctx t ind = (human_init_pos t ind, unit_size (), 1)
 
 module Point = struct
   type t = int * int
@@ -427,35 +429,41 @@ let add_item map_ref =
     in
     List.fold_left (fun acc loc -> acc || is_item map loc) false neighbor_lst
   in
-  let rec return_floor_loc map =
-    let w, h = map.size in
-    let data = map.data in
-    let x, y = (int w, int h) in
-    match data.(x).(y) with
-    | Floor _ ->
-        (* check neighboring floors do not contain a small coin *)
-        if check_neighbor map (x, y) then return_floor_loc map else (x, y)
-    | Wall -> return_floor_loc map
+  let rec return_floor_loc map n =
+    if n = 0 then None
+    else
+      let w, h = map.size in
+      let data = map.data in
+      let x, y = (int w, int h) in
+      match data.(x).(y) with
+      | Floor _ ->
+          (* check neighboring floors do not contain a small coin *)
+          if check_neighbor map (x, y) then return_floor_loc map (n - 1)
+          else Some (x, y)
+      | Wall -> return_floor_loc map (n - 1)
   in
-  let x, y = return_floor_loc map in
-  let item_list_ref = ref map.item_list in
-  let item_ref_opt = gen_rand_item () in
-  map.data.(x).(y) <-
-    Floor
-      begin
-        match item_ref_opt with
-        | None -> Empty
-        | Some item_ref -> begin
-            match item_type !item_ref with
-            | SmallCoin -> Empty (* do not add item if it's a small coin *)
-            | _ ->
-                let sdl_loc = to_sdl_area (x, y) in
-                item_list_ref := (sdl_loc, item_ref) :: !item_list_ref;
-                Mass item_ref
-          end
-      end;
-  (* mutate contents of map_ref *)
-  map_ref := { !map_ref with data = map.data; item_list = !item_list_ref }
+  (* try for 10 iterations only *)
+  match return_floor_loc map 10 with
+  | Some (x, y) ->
+      let item_list_ref = ref map.item_list in
+      let item_ref_opt = gen_rand_item () in
+      map.data.(x).(y) <-
+        Floor
+          begin
+            match item_ref_opt with
+            | None -> Empty
+            | Some item_ref -> begin
+                match item_type !item_ref with
+                | SmallCoin -> Empty (* do not add item if it's a small coin *)
+                | _ ->
+                    let sdl_loc = to_sdl_area (x, y) in
+                    item_list_ref := (sdl_loc, item_ref) :: !item_list_ref;
+                    Mass item_ref
+              end
+          end;
+      (* mutate contents of map_ref *)
+      map_ref := { !map_ref with data = map.data; item_list = !item_list_ref }
+  | None -> ()
 
 let remove_item map_ref loc =
   let x, y = to_canvas loc in

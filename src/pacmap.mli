@@ -20,6 +20,10 @@ val find_move : t -> int * int -> int * int -> (int * int) * space
     [t] *)
 val camel_ctx : t -> (int * int) * (int * int) * int
 
+(** [human_init_pos t ind] is the initial position of a human depending on [t]
+    and [ind]. The position is relative to the sdl_area. *)
+val human_init_pos : t -> int -> int * int
+
 (** [human_ctx t] is the starting point, size, and speed of a human in pacmap
     [t] *)
 val human_ctx : t -> int -> (int * int) * (int * int) * int

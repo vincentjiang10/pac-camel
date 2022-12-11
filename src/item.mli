@@ -37,14 +37,14 @@ val src : t -> string
 (** [effect t] is the effect of [t]. Note: can modify states in [state] *)
 val effect : t -> unit
 
+(** [make_effect d eff] is [eff] after [d] seconds of delay *)
+val make_effect : float -> (unit -> unit) -> unit -> unit
+
 (** [animate t] animates item by mutating its contents (width, height, etc) *)
 val animate : t ref -> unit
 
 (** [flip t] gets the flip instruction for [t] *)
 val flip : t -> Tsdl.Sdl.flip
-
-(** [change_flip t_ref] changes [!t_ref]'s flip *)
-val change_flip : t ref -> unit
 
 (** [shift t] is the amount to shift the item by *)
 val shift : t -> int * int

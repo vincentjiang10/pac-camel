@@ -18,7 +18,7 @@ type t = {
   probabilty : float;
   start_time : int;
   duration : int;
-  effect_duration : int;
+  effect_duration : float;
   src : string;
   effect_start : unit -> unit;
   effect_end : unit -> unit;
@@ -38,9 +38,17 @@ let src t = t.src
 let animate t = !t.animate t
 let shift t = t.shift
 
+let make_effect delay effect () =
+  Thread.create
+    (fun () ->
+      Thread.delay delay;
+      effect ())
+    ()
+  |> ignore
+
 let effect t =
   t.effect_start ();
-  t.effect_end ()
+  make_effect t.effect_duration t.effect_end ()
 
 let flip t = t.flip
 let item_type t = t.item_type
@@ -49,21 +57,6 @@ let itemHeight = ref 0
 let path = "assets/images/items/"
 
 (*========================== Transformation effects ==========================*)
-let rotate_y max_size item_ref =
-  (* TODO: flip source image *)
-  let item = !item_ref in
-  let width =
-    let scale =
-      cos
-        ((item.start_time |> float_of_int)
-        +. ((!state_time |> float_of_int) /. 50.))
-    in
-    (max_size |> float_of_int) *. scale |> int_of_float |> abs
-  in
-  (* x-coordinate of item location is moved half of size dilation *)
-  let shift = ((max_size - width) / 2, 0) in
-  item_ref := { item with width; shift }
-
 let change_flip item_ref =
   let item = !item_ref in
   item_ref :=
@@ -72,17 +65,32 @@ let change_flip item_ref =
       flip = Tsdl.Sdl.Flip.(if item.flip = none then horizontal else none);
     }
 
+let cos_time rate c = cos (c +. ((!state_time |> float_of_int) *. rate))
+
+let rotate_y max_size item_ref =
+  (* TODO: flip source image *)
+  let item = !item_ref in
+  let width =
+    let scale = cos_time 0.02 (item.start_time |> float_of_int) in
+    (max_size |> float_of_int) *. scale |> int_of_float |> abs
+  in
+  (* x-coordinate of item location is moved half of size dilation *)
+  let shift = ((max_size - width) / 2, 0) in
+  item_ref := { item with width; shift };
+  (* change direction upon reaching trough in width *)
+  if width = 0 then change_flip item_ref
+
 (*============================================================================*)
 
 let commonItem () =
   {
     width = !itemWidth;
     height = !itemHeight;
-    probabilty = 0.0005;
+    probabilty = 0.001;
     start_time = !state_time;
     (* 20 seconds *)
     duration = 2000;
-    effect_duration = 10000;
+    effect_duration = 10.;
     src = "";
     effect_start = (fun () -> ());
     effect_end = (fun () -> ());
@@ -133,56 +141,77 @@ let smallCoin () =
 (* double coin values *)
 let coinsItem () =
   let commonItem = commonItem () in
+  let setDoubleCoin b () = state_camel.doubleCoin <- b in
   {
     commonItem with
-    src = "";
-    effect_start = (fun () -> state_camel.doubleCoin <- true);
-    effect_end = (fun () -> ());
+    src = path ^ "coin_pile.png";
+    effect_start = setDoubleCoin true;
+    effect_end = setDoubleCoin false;
     item_type = Coins;
   }
 
 (* doubles camel speed *)
 let speedItem () =
   let commonItem = commonItem () in
+  let setDoubleSpeed b () = state_camel.doubleSpeed <- b in
   {
     commonItem with
-    src = "";
-    effect_start = (fun () -> state_camel.doubleSpeed <- true);
-    effect_end = (fun () -> ());
+    src = path ^ "speed.png";
+    effect_start = setDoubleSpeed true;
+    effect_end = setDoubleSpeed false;
     item_type = Speed;
   }
 
 (* stuns players *)
 let sandItem () =
   let commonItem = commonItem () in
+  let setHalfSpeed b () = state_human.halfSpeed <- b in
   {
     commonItem with
-    src = "";
-    effect_start = (fun () -> state_human.halfSpeed <- true);
-    effect_end = (fun () -> ());
+    src = path ^ "sand.jpg";
+    effect_start = setHalfSpeed true;
+    effect_end = setHalfSpeed false;
     item_type = Sand;
   }
 
 (* allow phasing through walls *)
 let phaseItem () =
   let commonItem = commonItem () in
+  let setIgnoreWalls b () =
+    state_camel.ignoreWalls <- b;
+    if not b then state_camel.doubleSpeed <- false
+  in
   {
     commonItem with
-    src = "";
-    effect_start = (fun () -> state_camel.ignoreWalls <- true);
-    effect_end = (fun () -> ());
+    src = path ^ "potion.png";
+    effect_start = setIgnoreWalls true;
+    effect_end = setIgnoreWalls false;
     item_type = Phase;
   }
 
 (* scares away humans *)
 let cactusItem () =
   let commonItem = commonItem () in
+  let setScared b () = state_human.scared <- b in
   {
     commonItem with
-    src = "";
-    effect_start = (fun () -> state_human.scared <- true);
-    effect_end = (fun () -> ());
+    src = path ^ "cactus.png";
+    effect_start = setScared true;
+    (* TODO: set scared and double speed to false *)
+    effect_end = setScared false;
     item_type = Cactus;
+  }
+
+(* gives invincibility state *)
+let invincibleItem () =
+  let commonItem = commonItem () in
+  let setInvincible b () = state_camel.invincible <- b in
+  {
+    commonItem with
+    src = path ^ "shield.png";
+    effect_start = setInvincible true;
+    effect_end = setInvincible false;
+    item_type = Invincible;
   }
 
 (* gives an additional life to the camel *)
@@ -190,7 +219,7 @@ let lifeItem () =
   let commonItem = commonItem () in
   {
     commonItem with
-    src = "";
+    src = path ^ "heart.png";
     effect_start = (fun () -> state_lives := min 3 (!state_lives + 1));
     item_type = Life;
   }
@@ -200,20 +229,9 @@ let timeItem () =
   let commonItem = commonItem () in
   {
     commonItem with
-    src = "";
+    src = path ^ "time.png";
     effect_start = (fun () -> state_end_time := !state_end_time + 1000);
     item_type = Time;
-  }
-
-(* gives invincibility state *)
-let invincibleItem () =
-  let commonItem = commonItem () in
-  {
-    commonItem with
-    src = "";
-    effect_start = (fun () -> state_camel.invincible <- true);
-    effect_end = (fun () -> ());
-    item_type = Invincible;
   }
 
 let init_items (w, h) =
