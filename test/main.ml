@@ -1,3 +1,56 @@
+(**Test plan: Description of parts that were manually tested, Ounit Tested, how
+   they were tested and why this provides correctness to our programs and game.
+
+   Parts of system manually tested via GUI and playing: We tested gui.mli,
+   item.mli, pacmap.mli and state.mli via manual testing and platying, this is
+   because this relies on the location at a given point of time in the game,
+   what inputs the players does and how the state is updated when the keyboard
+   actually detects an input as well as how the game should occur given some
+   time passing (we don't want test cases to run for too long) therefore these
+   modules were tested via multiple runs of the game, a possibility of different
+   keyboard inputs and a wait time as we just let time passed and watch the
+   scren to see what happens, to try and purposefully lose as well as to try and
+   win.
+
+   What modules were tested by OUnit and how test cases were developed: We
+   tested Movable via OUnit testing as this was the only module we could test
+   explicitly and rigidly without having to draw the map as we wanted the test
+   cases to test the correctness of our program rigidly which couldn't be done
+   correctly with other modules.
+
+   We used mainly black box testing to ensure that all specifications were met,
+   we followed the devious test cases trick as well as made sure test cases did
+   only according to specs. We also had some white box testing to ensure that we
+   were covering a lot of possible code via movements, camel generation, map
+   generation, human generation, human movement, and finally how and where these
+   humans and camel actually spawn since we expect more than one human on a map
+   at a time. We thought above all possible directions and way a camel and human
+   could move and we tested all possible allowable moves that the camel and
+   human could move given the map generated. We made sure that these test cases
+   were actually correct and followed specs and expectation again. Doing this
+   black box and glass box testing allows us to ensure confidence in the
+   correctness of our code. When looking at the code too via glass box testing
+   we made sure that all possible branches were taken given the idea of the
+   function.
+
+   Why we believe our approach provides correctness to our game: The game's
+   intention is to make sure that the camel is able to move at any given point
+   of time, the humans are somewhat approaching the camel at any time once the
+   timer has been passed for them to move, we also want to make sure that
+   collisions between human and camels. We check that the score gets updated as
+   the game is played via the widgets presented as well as how the game
+   restarts. This was all done through possible edge cases while playing the
+   game as well as letting time passes and see if there are any unusual effects.
+   We also tested our code correctness by testing all possible ways a camel or
+   human can move via the test file below as these are more rigorous to test
+   given a map. We test that the speed is not affected after any given movement
+   as well as positions are being updated given they are a possible way to move.
+   Given all of this we have gone through all possible branches of things that
+   could have occured throughout our game via manual and the actual test file.
+   So this allows our game to have correctness in the way we have described, set
+   it out to be and specified via documentation as we used black and glass box
+   testing. *)
+
 open OUnit2
 open Game
 open Movable
@@ -511,6 +564,5 @@ let movable_tests =
     >:: fun _ -> assert_equal 1 (Human.speed human_1) );
   ]
 
-let item_tests = []
 let suite = "test suite for Pac Caml" >::: List.flatten [ movable_tests ]
 let _ = run_test_tt_main suite
