@@ -199,8 +199,8 @@ let make_lose_board =
       ~fg:Draw.(opaque (find_color "white"))
       ~align:Center
   in
-  let p = Image.create ~bg:Draw.(opaque white) "assets/images/lose.png" in
-  let instruction_l = L.resident instruction ~x:85 ~y:35 in
+  let p = Image.create ~bg:Draw.(opaque white) "assets/images/lose1.png" in
+  let instruction_l = L.resident instruction ~x:90 ~y:35 in
   let layout =
     L.superpose
       [ final_score_l; instruction_l ]
@@ -210,14 +210,15 @@ let make_lose_board =
       ~background:(L.style_bg (Style.create ~background:(Style.image_bg p) ()))
   in
 
-  L.set_width layout 481;
-  L.set_height layout 385;
+  L.set_width layout 500;
+  L.set_height layout 400;
   of_layout layout
 
-let board = ref make_lose_board
+let board = ref make_greeting_board
 
 (*Helper functions to change board*)
 let change_game_board () =
+  reset_states ();
   board := make_game_board;
   change_state state Active
 
@@ -301,14 +302,13 @@ let main () =
          match Trigger.event_kind e with
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.s ->
              camel_dir_ref := (0, 0);
-
+             reset_game (int 10000);
              let th_game : Thread.t = Thread.create change_game_board () in
              Thread.join th_game;
              (* let th : Thread.t = Thread.create Sync.push change_board in *)
              let make_window () = make_sdl_windows ~windows:[ win ] !board in
              let th_window : Thread.t = Thread.create make_window () in
-             Thread.join th_window;
-             reset_game (int 10000)
+             Thread.join th_window
          | _ -> ())
      | Pause -> (
          match Trigger.event_kind e with
@@ -324,18 +324,22 @@ let main () =
              let make_window () = make_sdl_windows ~windows:[ win ] !board in
              let th2 : Thread.t = Thread.create make_window () in
              Thread.join th2;
-             reset_game (int 10000)
+             reset_game (int 100000)
          | _ -> ())
      | Lose -> (
          match Trigger.event_kind e with
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.r ->
+             print_endline "restart";
+
              (* let th : Thread.t = Thread.create Sync.push change_board in *)
-             let th : Thread.t = Thread.create change_game_board () in
-             Thread.join th;
-             let make_window () = make_sdl_windows ~windows:[ win ] !board in
-             let th2 : Thread.t = Thread.create make_window () in
-             Thread.join th2;
-             reset_game (int 10000)
+             let change_greeting_board () =
+               board := make_greeting_board;
+               change_state state Inactive;
+               reset_game (Random.int 100);
+               make_sdl_windows ~windows:[ win ] !board
+             in
+             let th = Thread.create change_greeting_board () in
+             Thread.join th
          | _ -> ())
      | _ -> ());
 
@@ -355,12 +359,9 @@ let main () =
     check_item_expiration map_ref;
 
     (* TODO: testing states *)
-    "time: " ^ string_of_int !state_time ^ ", score: "
-    ^ string_of_int !state_score ^ ", lives: " ^ string_of_int !state_lives
-    ^ ", camel double speed: "
-    ^ string_of_bool state_camel.doubleSpeed
-    |> print_endline;
-
+    (* "time: " ^ string_of_int !state_time ^ ", score: " ^ string_of_int
+       !state_score ^ ", lives: " ^ string_of_int !state_lives ^ ", camel double
+       speed: " ^ string_of_bool state_camel.doubleSpeed |> print_endline; *)
     W.set_text score_w ("Score: " ^ string_of_int !state_score);
     (* item rendering *)
     (* TODO @Yaqi: replace rectangles with images *)
@@ -455,18 +456,16 @@ let main () =
                 state_lives := !state_lives - 1;
                 change_state state Pause;
                 (* TODO: check for game round end -> gameover and reset *)
-                if !state_lives = 0 then (
-                  W.set_text final_score
-                    ("Your Final Score is : " ^ string_of_int !state_score);
-                  change_state state Lose;
-                  let change_lose_board () = board := make_lose_board in
-                  let th3 : Thread.t = Thread.create change_lose_board () in
-                  Thread.join th3;
-                  let make_window () =
-                    make_sdl_windows ~windows:[ win ] !board
-                  in
-                  let th2 : Thread.t = Thread.create make_window () in
-                  Thread.join th2);
+                (if !state_lives = 0 then
+                 let change_lose_board () =
+                   W.set_text final_score
+                     ("Your Final Score is : " ^ string_of_int !state_score);
+                   board := make_lose_board;
+                   change_state state Lose;
+                   make_sdl_windows ~windows:[ win ] !board
+                 in
+                 let th_lose : Thread.t = Thread.create change_lose_board () in
+                 Thread.join th_lose);
                 (* TODO: set countdown *)
                 state_camel.invincible <- true
               end;
@@ -528,8 +527,11 @@ let main () =
       if !state_time >= !state_end_time then begin
         W.set_text final_score
           ("Time's up! Your Final Score is : " ^ string_of_int !state_score);
-        change_state state Lose;
-        let change_lose_board () = board := make_lose_board in
+
+        let change_lose_board () =
+          board := make_lose_board;
+          change_state state Lose
+        in
         let th3 : Thread.t = Thread.create change_lose_board () in
         Thread.join th3;
         let make_window () = make_sdl_windows ~windows:[ win ] !board in
