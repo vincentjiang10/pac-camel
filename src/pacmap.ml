@@ -378,7 +378,7 @@ let get_path_dir map src dst =
 (* Creates a pacmap with random odd size *)
 let gen_map seed sdl_area =
   init seed;
-  let s = (int 15 * 2) + 30 in
+  let s = (int 20 * 2) + 30 in
   (* reset end time to be dependent on n^2, where n is the size of the map *)
   state_end_time := s * s * 5;
   let data = Array.make_matrix s s (Floor Empty) in

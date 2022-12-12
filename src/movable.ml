@@ -81,7 +81,7 @@ module Human : Movable = struct
    *)
   include MovableCommon
 
-  let index = ref 0
+  let index = ref 1
 
   let init map image =
     (* take the mod 4 of index to get positioning of humans *)
