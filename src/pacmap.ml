@@ -304,6 +304,7 @@ let populate_items data s =
              match item_ref with
              | None -> Empty
              | Some item_ref ->
+                 if Item.item_type !item_ref = SmallCoin then incr state_num_coins;
                  let sdl_loc = to_sdl_area (x, y) in
                  item_list_ref := (sdl_loc, item_ref) :: !item_list_ref;
                  Mass item_ref)
@@ -417,6 +418,7 @@ let gen_map seed sdl_area =
   let s = (int 20 * 2) + 30 in
   (* reset end time to be dependent on n^2, where n is the size of the map *)
   state_end_time := s * s * 10;
+  state_num_coins := 0;
   let data = Array.make_matrix s s (Floor Empty) in
   (* emptying sets *)
   empty wall_set;
@@ -450,8 +452,6 @@ let add_item map_ref =
       x < 0 || y < 0
       || x >= fst map.size
       || y >= snd map.size
-      (* should not be in boundary points *)
-      || PointSet.mem (x, y) !boundary_points
     then false
     else
       match map.data.(x).(y) with
@@ -483,7 +483,9 @@ let add_item map_ref =
       match data.(x).(y) with
       | Floor _ ->
           (* check neighboring floors do not contain a small coin *)
-          if check_neighbor map (x, y) then return_floor_loc map (n - 1)
+          if 
+            (* should not be in boundary points *)
+            PointSet.mem (x, y) !boundary_points || check_neighbor map (x, y) then return_floor_loc map (n - 1)
           else Some (x, y)
       | Wall -> return_floor_loc map (n - 1)
   in

@@ -123,15 +123,15 @@ let reset_time () = time_ref := Time.now ()
 let reset_states () =
   state_time := 0;
   state_score := 0;
-  state_lives := 1;
+  state_lives := 3;
   reset_state_camel ();
   reset_state_human ()
 
 (* sets up the game *)
 let reset_game seed =
-  reset_map seed;
   reset_time ();
-  reset_states ()
+  reset_states ();
+  reset_map seed
 
 let bg = (255, 255, 255, 255)
 
@@ -361,8 +361,7 @@ let main () =
     (* TODO: testing states *)
     "time: " ^ string_of_int !state_time ^ ", score: "
     ^ string_of_int !state_score ^ ", lives: " ^ string_of_int !state_lives
-    ^ ", camel double speed: "
-    ^ string_of_bool state_camel.doubleSpeed
+    ^ ", num coins:" ^ string_of_int !state_num_coins
     |> print_endline;
 
     W.set_text score_w ("Score: " ^ string_of_int !state_score);
@@ -446,7 +445,7 @@ let main () =
               (xDiff * xDiff) + (yDiff * yDiff)
             in
             (* collision effect *)
-            if dist < thres then
+            if dist < thres && current_state state = Active then
               if state_human.scared then begin
                 (* TODO: add notify score effect? *)
                 state_score :=
@@ -459,7 +458,6 @@ let main () =
               end
               else if not state_camel.invincible then begin
                 state_lives := !state_lives - 1;
-                change_state state Pause;
                 (* TODO: check for game round end -> gameover and reset *)
                 (if !state_lives = 0 then
                   let change_lose_board () =
@@ -471,9 +469,8 @@ let main () =
                   in
                   let th_lose : Thread.t = Thread.create change_lose_board () in
                   Thread.join th_lose);
-                 (* TODO: set countdown *)
-                (* TODO: set countdown *)
-                state_camel.invincible <- true
+                state_camel.invincible <- true;
+                Item.make_effect 5. (fun () -> state_camel.invincible <- false) ()
               end;
             go
               (Sdl.render_copy

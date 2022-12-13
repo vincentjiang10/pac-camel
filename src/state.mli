@@ -24,6 +24,9 @@ val state_time : int ref
 (* [!state_score] is the score counter for the current game *)
 val state_score : int ref
 
+(* [!state_num_coins] is the number of coins currently in the game *)
+val state_num_coins : int ref
+
 (* [!state_lives] is the number of lives the camel has *)
 val state_lives : int ref
 

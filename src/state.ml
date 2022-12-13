@@ -23,6 +23,7 @@ let state_end_time = ref 6000
 (* Game round ends when state_time reaches state_end_time *)
 let state_time = ref 0
 let state_score = ref 0
+let state_num_coins = ref 0
 let state_lives = ref 3
 
 (* Human state *)

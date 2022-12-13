@@ -132,6 +132,7 @@ let smallCoin () =
     effect_start =
       (fun () ->
         let incr = if state_camel.doubleCoin then 2 else 1 in
+        state_num_coins := !state_num_coins - 1;
         state_score := !state_score + incr);
     item_type = SmallCoin;
   }
