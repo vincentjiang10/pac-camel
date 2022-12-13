@@ -39,8 +39,6 @@ let apply f (x, y) = (f x, f y)
 let string_of_point (x, y) =
   "(" ^ string_of_int x ^ ", " ^ string_of_int y ^ ")"
 
-(* TODO: @Vincent, if (x,y) is on a cell with item, clear it -> set to Floor
-   Empty *)
 let find_move map p_from dir =
   let size = fst map.size in
   let bound v = if v < 0 then v + size else if v >= size then v - size else v in
@@ -83,6 +81,9 @@ let wall_set = ref PointSet.empty
 (* Wall boundary: a set of points (x, y) denoting the boundary of the valid cell
    to draw walls. *)
 let wall_boundary = ref PointSet.empty
+
+(* Boundary points: points that are outside the map boundary *)
+let boundary_points = ref PointSet.empty
 let add p s = s := PointSet.add p !s
 
 let add_wall data (x, y) =
@@ -133,6 +134,11 @@ let update_wb s =
     done
   done
 
+type contraint_info = {
+  mutable x_range : int list;
+  mutable y_range : int list;
+}
+
 (* Takes in an empty map data and sets up starting zone in the center *)
 let start_map data s =
   let mid = s / 2 in
@@ -144,9 +150,35 @@ let start_map data s =
 
   (* generate bump *)
   let rec gen_bump (dir_x, dir_y) (x, y) (l1, l2) =
+    let contraints = { x_range = []; y_range = [] } in
+    (* Requires: dir must be a unit vector with magnitude of x or y being 1 *)
+    let contraint_maker dir (x, y) =
+      match dir with
+      | 0, _ -> contraints.y_range <- y :: contraints.y_range
+      | _, 0 -> contraints.x_range <- x :: contraints.x_range
+      | _ -> failwith "Impossible: precondition violated"
+    in
+    (* first contraint *)
+    contraint_maker (dir_x, dir_y) (x, y);
     let p = walls (dir_x, dir_y) (x, y) l1 in
+    (* second contraint *)
+    contraint_maker (dir_y, -dir_x) p;
     let p = walls (dir_y, -dir_x) p l2 in
+    (* third contraint *)
+    contraint_maker (-dir_x, -dir_y) p;
     let p_x, p_y = walls (-dir_x, -dir_y) p l1 in
+    (* fourth contraint *)
+    contraint_maker (-dir_y, dir_x) (p_x, p_y);
+
+    (* add points satifying contraints to boundary points *)
+    let xs = List.sort compare contraints.x_range in
+    let ys = List.sort compare contraints.y_range in
+    for x = List.nth xs 0 to List.nth xs 1 do
+      for y = List.nth ys 0 to List.nth ys 1 do
+        add (x, y) boundary_points
+      done
+    done;
+
     let prob = float 1. in
     let thres = 10 in
     let p_skip = (p_x + (2 * dir_y), p_y - (2 * dir_x)) in
@@ -187,7 +219,9 @@ let start_map data s =
     for x = mid to s - 1 do
       for y = mid + 3 to s - 1 do
         data.(x).(y) <- data.(x).(s - 1 - y);
-        if data.(x).(y) = Wall then add (x, y) wall_set
+        if data.(x).(y) = Wall then add (x, y) wall_set;
+        if PointSet.mem (x, s - 1 - y) !boundary_points then
+          add (x, y) boundary_points
       done
     done
   in
@@ -248,7 +282,9 @@ let mirror_left_y data s =
   let mid = s / 2 in
   for x = 0 to mid - 1 do
     for y = 0 to s - 1 do
-      data.(x).(y) <- data.(s - 1 - x).(y)
+      data.(x).(y) <- data.(s - 1 - x).(y);
+      if PointSet.mem (s - 1 - x, y) !boundary_points then
+        add (x, y) boundary_points
     done
   done
 
@@ -259,7 +295,9 @@ let populate_items data s =
   (* adding initial items to map *)
   for x = 0 to s - 1 do
     for y = 0 to s - 1 do
-      if data.(x).(y) = Floor Empty then
+      (* should not add item to boundary points *)
+      if PointSet.mem (x, y) !boundary_points then ()
+      else if data.(x).(y) = Floor Empty then
         data.(x).(y) <-
           Floor
             (let item_ref = gen_rand_item () in
@@ -368,8 +406,6 @@ let get_path_dir map src dst =
   (* call on [spread] has parameter [man_dst] that is less than the manhattan
      distance between [src] and [dst] (to approach closer to [dst] from
      [src]) *)
-  (* TODO: resolve collision logic (set scared state to false, etc) when src is
-     near center *)
   let man_dist = if state_human.scared then 0 else man_dist src dst / 10 in
   !paths.(dst |> spread man_dist |> to_ind).(src |> to_ind)
 
@@ -380,10 +416,13 @@ let gen_map seed sdl_area =
   init seed;
   let s = (int 20 * 2) + 30 in
   (* reset end time to be dependent on n^2, where n is the size of the map *)
-  state_end_time := s * s * 5;
+  state_end_time := s * s * 10;
   let data = Array.make_matrix s s (Floor Empty) in
+  (* emptying sets *)
   empty wall_set;
   empty wall_boundary;
+  empty boundary_points;
+  (* populating map with walls *)
   start_map data s;
   update_wb s;
   populate_map data s;
@@ -407,7 +446,13 @@ let gen_map seed sdl_area =
 let add_item map_ref =
   let map = !map_ref in
   let is_item map (x, y) =
-    if x < 0 || y < 0 || x >= fst map.size || y >= snd map.size then false
+    if
+      x < 0 || y < 0
+      || x >= fst map.size
+      || y >= snd map.size
+      (* should not be in boundary points *)
+      || PointSet.mem (x, y) !boundary_points
+    then false
     else
       match map.data.(x).(y) with
       | Floor (Mass _) -> true
@@ -556,6 +601,9 @@ let draw_map sdl_area map =
           (* swap drawing order to disable color layering *)
           draw_wall map sdl_area p;
           draw_floor c sdl_area p
-      | Floor _ -> draw_floor c sdl_area p
+      | Floor _ ->
+          (* TODO: add additional texture for boundary points *)
+          (* if PointSet.mem (x, y) !boundary_points then draw_wall map sdl_area p; *)
+          draw_floor c sdl_area p;
     done
   done
