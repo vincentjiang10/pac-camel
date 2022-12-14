@@ -172,7 +172,7 @@ let final_score =
   W.label
     ("Your Final Score is : " ^ string_of_int !score)
     ~fg:Draw.(opaque (find_color "white"))
-    ~align:Center ~size:30
+    ~align:Center ~size:20
 
 let make_win_board =
   let final_score_l = L.resident final_score ~x:0 ~y:0 in
@@ -181,15 +181,15 @@ let make_win_board =
       ~fg:Draw.(opaque (find_color "white"))
       ~align:Center
   in
-  let instruction_l = L.resident instruction ~x:85 ~y:35 in
+  let instruction_l = L.resident instruction ~x:35 ~y:35 in
   let p = Image.create ~bg:Draw.(opaque white) "assets/images/win.png" in
   let layout =
     L.superpose
       [ final_score_l; instruction_l ]
       ~background:(L.style_bg (Style.create ~background:(Style.image_bg p) ()))
   in
-  L.set_width layout 481;
-  L.set_height layout 385;
+  L.set_width layout 500;
+  L.set_height layout 400;
   of_layout layout
 
 let make_lose_board =
@@ -200,7 +200,7 @@ let make_lose_board =
       ~align:Center
   in
   let p = Image.create ~bg:Draw.(opaque white) "assets/images/lose1.png" in
-  let instruction_l = L.resident instruction ~x:85 ~y:35 in
+  let instruction_l = L.resident instruction ~x:35 ~y:35 in
   let layout =
     L.superpose
       [ final_score_l; instruction_l ]
@@ -329,7 +329,7 @@ let main () =
      | Lose -> (
          match Trigger.event_kind e with
          | `Key_down when Sdl.Event.(get e keyboard_keycode) = Sdl.K.r ->
-             print_endline "restart";
+             (* print_endline "restart"; *)
 
              (* let th : Thread.t = Thread.create Sync.push change_board in *)
              let change_greeting_board () =
@@ -523,7 +523,18 @@ let main () =
         go
           (Sdl.render_copy
              ?dst:(Some (Sdl.Rect.create ~x:930 ~y:150 ~w:40 ~h:40))
-             renderer camel_texture));
+             renderer camel_texture);
+      if !state_num_coins = 0 then
+        let change_win_board () =
+          W.set_text final_score
+            ("Congratulation! Your Final Score is : "
+           ^ string_of_int !state_score);
+          board := make_win_board;
+          change_state state Win;
+          make_sdl_windows ~windows:[ win ] !board
+        in
+        let th_lose : Thread.t = Thread.create change_win_board () in
+        Thread.join th_lose);
 
     if current_state state = Active then begin
       (* add possible item to map_ref *)
