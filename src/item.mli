@@ -7,6 +7,7 @@
 (** [t] represents an item in a game *)
 type t
 
+(** The type of values representing item types *)
 type item =
   | BigCoin
   | SmallCoin
@@ -49,10 +50,10 @@ val flip : t -> Tsdl.Sdl.flip
 (** [shift t] is the amount to shift the item by *)
 val shift : t -> int * int
 
-(** [itemType t] is the item type of t *)
+(** [itemType t] is the item type of [t] *)
 val item_type : t -> item
 
-(** [initItems (w,h)] sets up *)
+(** [initItems (w,h)] sets up the dimensions of items *)
 val init_items : int * int -> unit
 
 (** [genRandItem ()] is either a random item or [None]. Note for testing: use a

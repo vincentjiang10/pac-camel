@@ -6,7 +6,7 @@
 (** The abstract type of values representing pacmap *)
 type t
 
-(** The type of values representing a space on the pacmap*)
+(** The type of values representing a space on the pacmap *)
 type space =
   | Empty
   | Mass of Item.t ref
@@ -29,7 +29,7 @@ val human_init_pos : t -> int -> int * int
 val human_ctx : t -> int -> (int * int) * (int * int) * int
 
 (** [gen_map s a] is a generated seeded random pacmap dependent on seed [s] and
-    sdl_area [a] Requires [t]>=0*)
+    sdl_area [a] Requires [t] >= 0 *)
 val gen_map : int -> Bogue.Sdl_area.t -> t
 
 (** [add_item t] adds a random item to a random position in map referenece [t] *)

@@ -304,7 +304,8 @@ let populate_items data s =
              match item_ref with
              | None -> Empty
              | Some item_ref ->
-                 if Item.item_type !item_ref = SmallCoin then incr state_num_coins;
+                 if Item.item_type !item_ref = SmallCoin then
+                   incr state_num_coins;
                  let sdl_loc = to_sdl_area (x, y) in
                  item_list_ref := (sdl_loc, item_ref) :: !item_list_ref;
                  Mass item_ref)
@@ -448,11 +449,7 @@ let gen_map seed sdl_area =
 let add_item map_ref =
   let map = !map_ref in
   let is_item map (x, y) =
-    if
-      x < 0 || y < 0
-      || x >= fst map.size
-      || y >= snd map.size
-    then false
+    if x < 0 || y < 0 || x >= fst map.size || y >= snd map.size then false
     else
       match map.data.(x).(y) with
       | Floor (Mass _) -> true
@@ -483,9 +480,10 @@ let add_item map_ref =
       match data.(x).(y) with
       | Floor _ ->
           (* check neighboring floors do not contain a small coin *)
-          if 
+          if
             (* should not be in boundary points *)
-            PointSet.mem (x, y) !boundary_points || check_neighbor map (x, y) then return_floor_loc map (n - 1)
+            PointSet.mem (x, y) !boundary_points || check_neighbor map (x, y)
+          then return_floor_loc map (n - 1)
           else Some (x, y)
       | Wall -> return_floor_loc map (n - 1)
   in
@@ -606,6 +604,6 @@ let draw_map sdl_area map =
       | Floor _ ->
           (* TODO: add additional texture for boundary points *)
           (* if PointSet.mem (x, y) !boundary_points then draw_wall map sdl_area p; *)
-          draw_floor c sdl_area p;
+          draw_floor c sdl_area p
     done
   done

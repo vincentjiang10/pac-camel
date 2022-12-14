@@ -361,7 +361,8 @@ let main () =
     (* TODO: testing states *)
     "time: " ^ string_of_int !state_time ^ ", score: "
     ^ string_of_int !state_score ^ ", lives: " ^ string_of_int !state_lives
-    ^ ", num coins:" ^ string_of_int !state_num_coins
+    ^ ", num coins:"
+    ^ string_of_int !state_num_coins
     |> print_endline;
 
     W.set_text score_w ("Score: " ^ string_of_int !state_score);
@@ -458,19 +459,21 @@ let main () =
               end
               else if not state_camel.invincible then begin
                 state_lives := !state_lives - 1;
-                (* TODO: check for game round end -> gameover and reset *)
                 (if !state_lives = 0 then
-                  let change_lose_board () =
-                    W.set_text final_score
-                      ("Your Final Score is : " ^ string_of_int !state_score);
-                    board := make_lose_board;
-                    change_state state Lose;
-                    make_sdl_windows ~windows:[ win ] !board
-                  in
-                  let th_lose : Thread.t = Thread.create change_lose_board () in
-                  Thread.join th_lose);
+                 let change_lose_board () =
+                   W.set_text final_score
+                     ("Your Final Score is : " ^ string_of_int !state_score);
+                   board := make_lose_board;
+                   change_state state Lose;
+                   make_sdl_windows ~windows:[ win ] !board
+                 in
+                 let th_lose : Thread.t = Thread.create change_lose_board () in
+                 Thread.join th_lose);
+
                 state_camel.invincible <- true;
-                Item.make_effect 5. (fun () -> state_camel.invincible <- false) ()
+                Item.make_effect 5.
+                  (fun () -> state_camel.invincible <- false)
+                  ()
               end;
             go
               (Sdl.render_copy

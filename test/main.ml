@@ -2,24 +2,24 @@
    they were tested and why this provides correctness to our programs and game.
 
    Parts of system manually tested via GUI and playing: We tested [gui] ,
-   [item], [pacmap] and [state] via manual testing and platying, this is
-   because this relies on the location at a given point of time in the game,
-   what inputs the players does and how the state is updated when the keyboard
-   actually detects an input as well as how the game should occur given some
-   time passing (we don't want test cases to run for too long) therefore these
-   modules were tested via multiple runs of the game, a possibility of different
-   keyboard inputs and a wait time as we just let time passed and watch the
-   scren to see what happens, to try and purposefully lose as well as to try and
-   win, these are mostly not here because a lot of these functions would 
-   return the type unit in OCaml which is hard to test against due to mutability. 
+   [item], [pacmap] and [state] via manual testing and platying, this is because
+   this relies on the location at a given point of time in the game, what inputs
+   the players does and how the state is updated when the keyboard actually
+   detects an input as well as how the game should occur given some time passing
+   (we don't want test cases to run for too long) therefore these modules were
+   tested via multiple runs of the game, a possibility of different keyboard
+   inputs and a wait time as we just let time passed and watch the scren to see
+   what happens, to try and purposefully lose as well as to try and win, these
+   are mostly not here because a lot of these functions would return the type
+   unit in OCaml which is hard to test against due to mutability.
 
    What modules were tested by OUnit and how test cases were developed: We
    tested Movable via OUnit testing as this was the only module we could test
    explicitly and rigidly without having to draw the map as we wanted the test
    cases to test the correctness of our program rigidly which couldn't be done
-   correctly with other modules. The reason for mainly testing this was because with a 
-   game like pacman it is not hard to tell how any object should move around the map
-   given an array position as this comes with [Movable.t]. 
+   correctly with other modules. The reason for mainly testing this was because
+   with a game like pacman it is not hard to tell how any object should move
+   around the map given an array position as this comes with [Movable.t].
 
    We used mainly black box testing to ensure that all specifications were met,
    we followed the devious test cases trick as well as made sure test cases did
@@ -52,26 +52,21 @@
    could have occured throughout our game via manual and the actual test file.
    So this allows our game to have correctness in the way we have described, set
    it out to be and specified via documentation as we used black and glass box
-   testing, and we have produced all possibilites of advances in the game. 
-   
+   testing, and we have produced all possibilites of advances in the game.
+
    We have 50 test cases for correctness that help test the following:
-   
-   1) Camel initialization (on different maps too)
-   2) Humans initializations (on different maps too)
-   3) Camel moving with vectors of magnitude 1 in all possible directions (negative and positive)
-   4) Human moving with vectors of magnitude 1 in all possible directions (negative and positive)
-   5) No side effects after camel moving in all possible directions (negative and positive)
-   6) No side effects after human moving in all possible directions (negative and positions)
-   7) Camel moving in any diagonal direction (negative and positive)
-   8) Human moving in any diagonal direction (negative and positive)
-   9) Camel moving with distances of magnitude strictly greater than 1
-  10) Camel moving with distances of magnitude strictly greater than 1
-  11) Position calculation 
-  12) Speed calculation
-  13) Map initializations 
-  
-   
-   *)
+
+   1) Camel initialization (on different maps too) 2) Humans initializations (on
+   different maps too) 3) Camel moving with vectors of magnitude 1 in all
+   possible directions (negative and positive) 4) Human moving with vectors of
+   magnitude 1 in all possible directions (negative and positive) 5) No side
+   effects after camel moving in all possible directions (negative and positive)
+   6) No side effects after human moving in all possible directions (negative
+   and positions) 7) Camel moving in any diagonal direction (negative and
+   positive) 8) Human moving in any diagonal direction (negative and positive)
+   9) Camel moving with distances of magnitude strictly greater than 1 10) Camel
+   moving with distances of magnitude strictly greater than 1 11) Position
+   calculation 12) Speed calculation 13) Map initializations *)
 
 open OUnit2
 open Game

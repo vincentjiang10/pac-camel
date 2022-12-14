@@ -6,6 +6,3 @@ type-decl = sparse
 wrap-comments = true
 doc-comments = before
 margin = 80
-[@@@ocamlformat "disable=true"] 
-<code> 
-[@@@ocamlformat "disable=false"]
