@@ -2,8 +2,8 @@ open Bogue
 open Main
 open Pacmap
 open Movable
-open Camel
-open Human
+
+(* open Camel open Human *)
 open Utils
 open State
 open Random
@@ -12,8 +12,7 @@ module L = Layout
 module T = Trigger
 
 (* SETUP *)
-let width = 800
-let height = 800
+(* let width = 800 let height = 800 *)
 
 (* WIDGETS*)
 (* let start_title_w = W.label ~size:32 ~fg:Draw.(opaque (find_color
@@ -44,13 +43,21 @@ let pause_instruction =
 let pause_instruction_l =
   L.resident pause_instruction ~x:820 ~w:170 ~h:100 ~y:700
 
+let restart_instruction =
+  W.label "Press [r] to get a new map "
+    ~fg:Draw.(opaque (find_color "black"))
+    ~size:7
+
+let restart_instruction_l =
+  L.resident restart_instruction ~x:820 ~w:170 ~h:100 ~y:680
+
 let display_time =
   W.label
     ("Timer: " ^ string_of_int ((!state_end_time - !state_time) / 100))
     ~fg:Draw.(opaque (find_color "black"))
     ~size:10
 
-let display_time_l = L.resident display_time ~x:830 ~w:100 ~h:100 ~y:300
+let display_time_l = L.resident display_time ~x:832 ~w:100 ~h:100 ~y:300
 
 let thick_grey_line =
   Style.mk_line ~color:Draw.(opaque black) ~width:3 ~style:Solid ()
@@ -60,9 +67,9 @@ let round_blue_box =
   let border = mk_border ~radius:2 thick_grey_line in
   create ~border ~background:(color_bg Draw.(opaque @@ find_color "black")) ()
 
-let bg_off = Style.color_bg Draw.none
-let bg_over = Some (Style.opaque_bg Draw.grey)
-let fg = Draw.(opaque black)
+(* let bg_off = Style.color_bg Draw.none let bg_over = Some (Style.opaque_bg
+   Draw.grey) *)
+(* let fg = Draw.(opaque black) *)
 (*LAYOUT*)
 
 (* TODO @GUI (optional): animate in the title + add hovering to buttons upon
@@ -160,6 +167,7 @@ let make_game_board =
         lives_l;
         display_time_l;
         pause_instruction_l;
+        restart_instruction_l;
         Space.hfill ();
       ]
   in
